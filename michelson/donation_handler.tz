@@ -1,0 +1,233 @@
+parameter (or (pair %donate (bytes %identifier) (pair (address %project_address) (nat %value))) (or (option %set_round_address address) (address %set_whitelist_address)));
+storage   (pair (address %dao_address) (pair (option %round_address address) (address %whitelist_address)));
+code
+  {
+    CAST (pair (or (pair bytes (pair address nat)) (or (option address) address)) (pair address (pair (option address) address))); # pair (or (pair bytes (pair address nat)) (or (option address) address)) (pair address (pair (option address) address))
+    UNPAIR;     # or (pair bytes (pair address nat)) (or (option address) address) : pair address (pair (option address) address)
+    IF_LEFT
+      {
+        SWAP;       # pair address (pair (option address) address) : pair bytes (pair address nat)
+        # == donate ==
+        # sp.verify(self.data.round_address.is_some(), 'NO_ROUND_IS_ACTIVE') # pair address (pair (option address) address) : pair bytes (pair address nat)
+        DUP;        # pair address (pair (option address) address) : pair address (pair (option address) address) : pair bytes (pair address nat)
+        DUG 2;      # pair address (pair (option address) address) : pair bytes (pair address nat) : pair address (pair (option address) address)
+        GET 3;      # option address : pair bytes (pair address nat) : pair address (pair (option address) address)
+        IF_SOME
+          {
+            DROP;       # pair bytes (pair address nat) : pair address (pair (option address) address)
+          }
+          {
+            PUSH string "NO_ROUND_IS_ACTIVE"; # string : pair bytes (pair address nat) : pair address (pair (option address) address)
+            FAILWITH;   # FAILED
+          }; # pair bytes (pair address nat) : pair address (pair (option address) address)
+        # sp.transfer(sp.sender, sp.tez(0), sp.contract(sp.TAddress, self.data.whitelist_address, entry_point='verify_whitelisted').open_some()) # pair bytes (pair address nat) : pair address (pair (option address) address)
+        NIL operation; # list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        DUP 3;      # pair address (pair (option address) address) : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        GET 4;      # address : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        CONTRACT %verify_whitelisted address; # option (contract address) : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        IF_SOME
+          {}
+          {
+            PUSH int 40; # int : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            FAILWITH;   # FAILED
+          }; # @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        PUSH mutez 0; # mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        SENDER;     # @sender : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        TRANSFER_TOKENS; # operation : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        CONS;       # list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        # if params.identifier == sp.pack('TEZOS_IDENTIFIER'): # list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        PUSH string "TEZOS_IDENTIFIER"; # string : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        PACK;       # bytes : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        DUP 3;      # pair bytes (pair address nat) : bytes : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        CAR;        # bytes : bytes : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        COMPARE;    # int : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        EQ;         # bool : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+        IF
+          {
+            # sp.verify(params.value == sp.fst(sp.ediv(sp.amount, sp.mutez(1)).open_some(message = sp.unit)), 'INCORRECT_VALUE_PARAMETER') # list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PUSH mutez 1; # mutez : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            AMOUNT;     # @amount : mutez : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            EDIV;       # option (pair nat mutez) : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            IF_SOME
+              {}
+              {
+                UNIT;       # unit : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CAR;        # nat : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            DUP 3;      # pair bytes (pair address nat) : nat : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            GET 4;      # nat : nat : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            COMPARE;    # int : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            EQ;         # bool : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            IF
+              {}
+              {
+                PUSH string "INCORRECT_VALUE_PARAMETER"; # string : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            # sp.transfer(sp.record(from_ = sp.sender, identifier = params.identifier, project_address = params.project_address, value = sp.fst(sp.ediv(sp.amount, sp.mutez(1)).open_some(message = sp.unit))), sp.tez(0), sp.contract(sp.TRecord(from_ = sp.TAddress, identifier = sp.TBytes, project_address = sp.TAddress, value = sp.TNat).layout((("from_", "identifier"), ("project_address", "value"))), self.data.round_address.open_some(), entry_point='contribute').open_some()) # list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            DUP 3;      # pair address (pair (option address) address) : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            GET 3;      # option address : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            IF_SOME
+              {}
+              {
+                PUSH int 48; # int : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CONTRACT %contribute (pair (pair address bytes) (pair address nat)); # option (contract (pair (pair address bytes) (pair address nat))) : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            IF_SOME
+              {}
+              {
+                PUSH int 44; # int : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PUSH mutez 0; # mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PUSH mutez 1; # mutez : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            AMOUNT;     # @amount : mutez : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            EDIV;       # option (pair nat mutez) : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            IF_SOME
+              {}
+              {
+                UNIT;       # unit : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # @some : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CAR;        # nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            DUP 5;      # pair bytes (pair address nat) : nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            GET 3;      # address : nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PAIR;       # pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            DUP 5;      # pair bytes (pair address nat) : pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CAR;        # bytes : pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            SENDER;     # @sender : bytes : pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PAIR;       # pair @sender bytes : pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PAIR;       # pair (pair @sender bytes) (pair address nat) : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            TRANSFER_TOKENS; # operation : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CONS;       # list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            SWAP;       # pair bytes (pair address nat) : list operation : pair address (pair (option address) address)
+            # sp.send(params.project_address, sp.amount) # pair bytes (pair address nat) : list operation : pair address (pair (option address) address)
+            GET 3;      # address : list operation : pair address (pair (option address) address)
+            CONTRACT unit; # option (contract unit) : list operation : pair address (pair (option address) address)
+            IF_SOME
+              {}
+              {
+                PUSH int 73; # int : list operation : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # @some : list operation : pair address (pair (option address) address)
+            AMOUNT;     # @amount : @some : list operation : pair address (pair (option address) address)
+            UNIT;       # unit : @amount : @some : list operation : pair address (pair (option address) address)
+            TRANSFER_TOKENS; # operation : list operation : pair address (pair (option address) address)
+            CONS;       # list operation : pair address (pair (option address) address)
+          }
+          {
+            # sp.transfer(sp.record(from_ = sp.sender, identifier = params.identifier, project_address = params.project_address, value = params.value), sp.tez(0), sp.contract(sp.TRecord(from_ = sp.TAddress, identifier = sp.TBytes, project_address = sp.TAddress, value = sp.TNat).layout((("from_", "identifier"), ("project_address", "value"))), self.data.round_address.open_some(), entry_point='contribute').open_some()) # list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            DUP 3;      # pair address (pair (option address) address) : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            GET 3;      # option address : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            IF_SOME
+              {}
+              {
+                PUSH int 48; # int : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CONTRACT %contribute (pair (pair address bytes) (pair address nat)); # option (contract (pair (pair address bytes) (pair address nat))) : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            IF_SOME
+              {}
+              {
+                PUSH int 44; # int : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PUSH mutez 0; # mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            DIG 3;      # pair bytes (pair address nat) : mutez : @some : list operation : pair address (pair (option address) address)
+            DUP;        # pair bytes (pair address nat) : pair bytes (pair address nat) : mutez : @some : list operation : pair address (pair (option address) address)
+            GET 4;      # nat : pair bytes (pair address nat) : mutez : @some : list operation : pair address (pair (option address) address)
+            SWAP;       # pair bytes (pair address nat) : nat : mutez : @some : list operation : pair address (pair (option address) address)
+            DUP;        # pair bytes (pair address nat) : pair bytes (pair address nat) : nat : mutez : @some : list operation : pair address (pair (option address) address)
+            DUG 5;      # pair bytes (pair address nat) : nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            GET 3;      # address : nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PAIR;       # pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            DUP 5;      # pair bytes (pair address nat) : pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CAR;        # bytes : pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            SENDER;     # @sender : bytes : pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PAIR;       # pair @sender bytes : pair address nat : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PAIR;       # pair (pair @sender bytes) (pair address nat) : mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            TRANSFER_TOKENS; # operation : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CONS;       # list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            SWAP;       # pair bytes (pair address nat) : list operation : pair address (pair (option address) address)
+            # sp.transfer(sp.record(from_ = sp.sender, to_ = params.project_address, value = params.value), sp.tez(0), sp.contract(sp.TRecord(from_ = sp.TAddress, to_ = sp.TAddress, value = sp.TNat).layout(("from_ as from", ("to_ as to", "value"))), sp.unpack(params.identifier, sp.TAddress).open_some(), entry_point='transfer').open_some()) # pair bytes (pair address nat) : list operation : pair address (pair (option address) address)
+            DUP;        # pair bytes (pair address nat) : pair bytes (pair address nat) : list operation : pair address (pair (option address) address)
+            DUG 2;      # pair bytes (pair address nat) : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CAR;        # bytes : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            UNPACK address; # option address : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            IF_SOME
+              {}
+              {
+                PUSH int 89; # int : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            CONTRACT %transfer (pair address (pair address nat)); # option (contract (pair address (pair address nat))) : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            IF_SOME
+              {}
+              {
+                PUSH int 92; # int : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            PUSH mutez 0; # mutez : @some : list operation : pair bytes (pair address nat) : pair address (pair (option address) address)
+            DIG 3;      # pair bytes (pair address nat) : mutez : @some : list operation : pair address (pair (option address) address)
+            DUP;        # pair bytes (pair address nat) : pair bytes (pair address nat) : mutez : @some : list operation : pair address (pair (option address) address)
+            GET 4;      # nat : pair bytes (pair address nat) : mutez : @some : list operation : pair address (pair (option address) address)
+            SWAP;       # pair bytes (pair address nat) : nat : mutez : @some : list operation : pair address (pair (option address) address)
+            GET 3;      # address : nat : mutez : @some : list operation : pair address (pair (option address) address)
+            SENDER;     # @sender : address : nat : mutez : @some : list operation : pair address (pair (option address) address)
+            PAIR 3;     # pair @sender (pair address nat) : mutez : @some : list operation : pair address (pair (option address) address)
+            TRANSFER_TOKENS; # operation : list operation : pair address (pair (option address) address)
+            CONS;       # list operation : pair address (pair (option address) address)
+          }; # list operation : pair address (pair (option address) address)
+      }
+      {
+        IF_LEFT
+          {
+            SWAP;       # pair address (pair (option address) address) : option address
+            # == set_round_address ==
+            # sp.verify(sp.sender == self.data.dao_address, 'ONLY_DAO_ALLOWED') # pair address (pair (option address) address) : option address
+            DUP;        # pair address (pair (option address) address) : pair address (pair (option address) address) : option address
+            DUG 2;      # pair address (pair (option address) address) : option address : pair address (pair (option address) address)
+            CAR;        # address : option address : pair address (pair (option address) address)
+            SENDER;     # @sender : address : option address : pair address (pair (option address) address)
+            COMPARE;    # int : option address : pair address (pair (option address) address)
+            EQ;         # bool : option address : pair address (pair (option address) address)
+            IF
+              {}
+              {
+                PUSH string "ONLY_DAO_ALLOWED"; # string : option address : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # option address : pair address (pair (option address) address)
+            # self.data.round_address = params # option address : pair address (pair (option address) address)
+            UPDATE 3;   # pair address (pair (option address) address)
+          }
+          {
+            SWAP;       # pair address (pair (option address) address) : address
+            # == set_whitelist_address ==
+            # sp.verify(sp.sender == self.data.dao_address, 'ONLY_DAO_ALLOWED') # pair address (pair (option address) address) : address
+            DUP;        # pair address (pair (option address) address) : pair address (pair (option address) address) : address
+            DUG 2;      # pair address (pair (option address) address) : address : pair address (pair (option address) address)
+            CAR;        # address : address : pair address (pair (option address) address)
+            SENDER;     # @sender : address : address : pair address (pair (option address) address)
+            COMPARE;    # int : address : pair address (pair (option address) address)
+            EQ;         # bool : address : pair address (pair (option address) address)
+            IF
+              {}
+              {
+                PUSH string "ONLY_DAO_ALLOWED"; # string : address : pair address (pair (option address) address)
+                FAILWITH;   # FAILED
+              }; # address : pair address (pair (option address) address)
+            # self.data.whitelist_address = params # address : pair address (pair (option address) address)
+            UPDATE 4;   # pair address (pair (option address) address)
+          }; # pair address (pair (option address) address)
+        NIL operation; # list operation : pair address (pair (option address) address)
+      }; # list operation : pair address (pair (option address) address)
+    NIL operation; # list operation : list operation : pair address (pair (option address) address)
+    SWAP;       # list operation : list operation : pair address (pair (option address) address)
+    ITER
+      {
+        CONS;       # list operation : pair address (pair (option address) address)
+      }; # list operation : pair address (pair (option address) address)
+    PAIR;       # pair (list operation) (pair address (pair (option address) address))
+  };
