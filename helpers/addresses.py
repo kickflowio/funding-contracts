@@ -16,12 +16,12 @@ STABLECOIN = sp.address("tz1bhMc5uPJynkrHpw7pAiBt6YMhQktn7owF")
 WHITELIST = sp.address("tz1bZ6EWRJvYUccpUtfaYmUjaA3gSB6dKRW8")
 DAO = sp.address("tz1cmBHhCvwSg9rXTdNFmVMR3xE2JWK3rhTF")
 
-# Project addresses
-PROJECT_1 = sp.address("tz1cXYGQtku5bZtRDXwGyMw7Y52AYkpX2vH1")
-PROJECT_2 = sp.address("tz1cy3X651cSUhtJbNysH9maFC8LgJz9KyYv")
-PROJECT_3 = sp.address("tz1czaureyspHk1etv1dKV1WmHCs9pb4fXBr")
-PROJECT_4 = sp.address("tz1d4cbP98Sbni6mxUmvAN9vufMZskSv3F4K")
-PROJECT_5 = sp.address("tz1dcpUhXGeXexEXispSpfv7CeufoFnV7AAf")
+# Entry addresses
+ENTRY_1 = sp.address("tz1cXYGQtku5bZtRDXwGyMw7Y52AYkpX2vH1")
+ENTRY_2 = sp.address("tz1cy3X651cSUhtJbNysH9maFC8LgJz9KyYv")
+ENTRY_3 = sp.address("tz1czaureyspHk1etv1dKV1WmHCs9pb4fXBr")
+ENTRY_4 = sp.address("tz1d4cbP98Sbni6mxUmvAN9vufMZskSv3F4K")
+ENTRY_5 = sp.address("tz1dcpUhXGeXexEXispSpfv7CeufoFnV7AAf")
 
 # Random address for miscelleneous use
 RANDOM = sp.address("tz1dz7eYRd5uV2DndcPWFeEHYGgw4bJZoCBN")

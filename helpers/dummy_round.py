@@ -14,7 +14,10 @@ class DummyRound(sp.Contract):
         sp.set_type(
             params,
             sp.TRecord(
-                from_=sp.TAddress, project_address=sp.TAddress, identifier=sp.TBytes, value=sp.TNat
+                from_=sp.TAddress,
+                entry_address=sp.TAddress,
+                token_identifier=sp.TBytes,
+                value=sp.TNat,
             ),
         )
         pass
