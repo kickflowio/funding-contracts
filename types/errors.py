@@ -63,3 +63,12 @@ SELF_CONTRIBUTION_NOT_ALLOWED = "SELF_CONTRIBUTION_NOT_ALLOWED"
 
 # The given token identifier is not present in the token set
 INVALID_TOKEN_IDENTIFIER = "INVALID_TOKEN_IDENTIFIER"
+
+# Can not disqualify the entries since the cooldown period is over
+COOLDOWN_PERIOD_OVER = "COOLDOWN_PERIOD_OVER"
+
+# The cooldown period is not over yet
+COOLDOWN_NOT_OVER = "COOLDOWN_NOT_OVER"
+
+# The period to set and challenge CLR is over
+CHALLENGE_PERIOD_OVER = "CLR_SETTING_PERIOD_OVER"

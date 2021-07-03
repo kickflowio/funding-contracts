@@ -17,6 +17,11 @@ SECURITY_DEPOSIT_AMOUNT = sp.tez(10)
 # Seconds in a day
 DAY = 86400
 
+# Granularity for the CLR ratio.
+# For granularity 10000, 0.2 = 2000
+GRANULARITY = 10000
+
+# Time contants
 CONTRIBUTION_START = sp.timestamp(5)
 CONTRIBUTION_PERIOD = 30 * DAY
 COOLDOWN_PERIOD = 7 * DAY
@@ -210,6 +215,50 @@ class MatchingRound(sp.Contract):
             entry.contributions[params.token_identifier] = []
         entry.contributions[params.token_identifier].push(params.value)
         entry.contributors.add(params.from_)
+
+    @sp.entry_point
+    def disqualify_entries(self, entry_list):
+        sp.set_type(entry_list, sp.TList(sp.TNat))
+
+        # Verify that the sender is the DAO
+        sp.verify(sp.sender == self.data.round_meta.dao_address, Errors.NOT_ALLOWED)
+
+        # Verify that the timing is correct
+        sp.verify(
+            sp.now < self.data.round_event_timestamps.cooldown_period_end,
+            Errors.COOLDOWN_PERIOD_OVER,
+        )
+
+        # Loop through the supplied entries and disqualify them
+        sp.for entry_id in entry_list:
+            sp.if self.data.entries.contains(entry_id):
+                self.data.entries[entry_id].status = Entry.ENTRY_STATUS_DISQUALIFIED
+
+    @sp.entry_point
+    def set_clr_match_ratios(self, ratio_map):
+        sp.set_type(ratio_map, sp.TMap(sp.TNat, sp.TNat))
+
+        # Verify that sender is the DAO
+        sp.verify(sp.sender == self.data.round_meta.dao_address, Errors.NOT_ALLOWED)
+
+        sp.verify(
+            sp.now > self.data.round_event_timestamps.cooldown_period_end, Errors.COOLDOWN_NOT_OVER
+        )
+
+        sp.if self.data.round_event_timestamps.challenge_period_end == sp.timestamp(0):
+            self.data.round_event_timestamps.challenge_period_end = sp.now.add_seconds(
+                CHALLENGE_PERIOD
+            )
+
+        # Verify that the timing is correct
+        sp.verify(
+            sp.now < self.data.round_event_timestamps.challenge_period_end,
+            Errors.CHALLENGE_PERIOD_OVER,
+        )
+
+        # Loop through the ratio map and set the clr match ratios
+        sp.for entry_id in ratio_map.keys():
+            self.data.entries[entry_id].clr_match_ratio = ratio_map[entry_id]
 
 
 ########
@@ -424,37 +473,37 @@ if __name__ == "__main__":
         deposit_withdrawn=False,
     )
 
-    @sp.add_test(name = "contribute records the contribution properly")
+    @sp.add_test(name="contribute records the contribution properly")
     def test():
         scenario = sp.test_scenario()
 
         matching_round = MatchingRound(
-            entries = sp.big_map(l = { 1: ENTRY }), 
-            entry_address_to_id = sp.big_map(l = { Addresses.ENTRY_1 : 1 })
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 
         scenario += matching_round
 
         # Contribution from ALICE to ENTRY_1
         scenario += matching_round.contribute(
-            from_ = Addresses.ALICE,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 100,
+            from_=Addresses.ALICE,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=100,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = sp.timestamp(6),
+            sender=Addresses.DONATION_HANDLER,
+            now=sp.timestamp(6),
         )
 
         # Contribution from BOB to ENTRY_1
         scenario += matching_round.contribute(
-            from_ = Addresses.BOB,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 200,
+            from_=Addresses.BOB,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=200,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = sp.timestamp(6),
+            sender=Addresses.DONATION_HANDLER,
+            now=sp.timestamp(6),
         )
 
         entry = matching_round.data.entries[1]
@@ -467,96 +516,93 @@ if __name__ == "__main__":
         scenario.verify(entry.contributors.contains(Addresses.ALICE))
         scenario.verify(entry.contributors.contains(Addresses.BOB))
 
-        # Verify the correctness of the contributions 
+        # Verify the correctness of the contributions
         l = entry.contributions[TEZOS_IDENTIFIER]
-        scenario.verify_equal(l,[200, 100])
-    
-    @sp.add_test(name = "contribute fails if the sender is not donation_handler")
+        scenario.verify_equal(l, [200, 100])
+
+    @sp.add_test(name="contribute fails if the sender is not donation_handler")
     def test():
         scenario = sp.test_scenario()
 
         matching_round = MatchingRound(
-            entries = sp.big_map(l = { 1: ENTRY }), 
-            entry_address_to_id = sp.big_map(l = { Addresses.ENTRY_1 : 1 })
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 
         scenario += matching_round
 
         # Contribution from ALICE to ENTRY_1 not sent through donation handler contracr
         scenario += matching_round.contribute(
-            from_ = Addresses.ALICE,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 100,
+            from_=Addresses.ALICE,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=100,
         ).run(
-            sender = Addresses.RANDOM,
-            now = sp.timestamp(6),
-            valid = False,
-            exception = Errors.NOT_ALLOWED
+            sender=Addresses.RANDOM, now=sp.timestamp(6), valid=False, exception=Errors.NOT_ALLOWED
         )
-    
-    @sp.add_test(name = "contribute fails if the entry_address is not in the round")
+
+    @sp.add_test(name="contribute fails if the entry_address is not in the round")
     def test():
         scenario = sp.test_scenario()
 
         matching_round = MatchingRound(
-            entries = sp.big_map(l = { 1: ENTRY }), 
-            entry_address_to_id = sp.big_map(l = { Addresses.ENTRY_1 : 1 })
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 
         scenario += matching_round
 
         # Contribution from ALICE to non existing entry address
         scenario += matching_round.contribute(
-            from_ = Addresses.ALICE,
-            entry_address = Addresses.RANDOM,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 100,
+            from_=Addresses.ALICE,
+            entry_address=Addresses.RANDOM,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=100,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = sp.timestamp(6),
-            valid = False,
-            exception = Errors.INVALID_ENTRY_ADDRESS
+            sender=Addresses.DONATION_HANDLER,
+            now=sp.timestamp(6),
+            valid=False,
+            exception=Errors.INVALID_ENTRY_ADDRESS,
         )
-    
-    @sp.add_test(name = "contribute fails if the contribution is not made in the correct period")
+
+    @sp.add_test(name="contribute fails if the contribution is not made in the correct period")
     def test():
         scenario = sp.test_scenario()
 
         matching_round = MatchingRound(
-            entries = sp.big_map(l = { 1: ENTRY }), 
-            entry_address_to_id = sp.big_map(l = { Addresses.ENTRY_1 : 1 })
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 
         scenario += matching_round
 
         # Contribution from ALICE to ENTRY_1 before contribution starts
         scenario += matching_round.contribute(
-            from_ = Addresses.ALICE,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 100,
+            from_=Addresses.ALICE,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=100,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = sp.timestamp(4),
-            valid = False,
-            exception = Errors.NOT_ACCEPTING_CONTRIBUTIONS
+            sender=Addresses.DONATION_HANDLER,
+            now=sp.timestamp(4),
+            valid=False,
+            exception=Errors.NOT_ACCEPTING_CONTRIBUTIONS,
         )
 
         # Contribution from ALICE to ENTRY_1 after contribution period ends
         scenario += matching_round.contribute(
-            from_ = Addresses.ALICE,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 100,
+            from_=Addresses.ALICE,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=100,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + 1),
-            valid = False,
-            exception = Errors.NOT_ACCEPTING_CONTRIBUTIONS
+            sender=Addresses.DONATION_HANDLER,
+            now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + 1),
+            valid=False,
+            exception=Errors.NOT_ACCEPTING_CONTRIBUTIONS,
         )
-    
-    @sp.add_test(name = "contribute fails if the entry is not active")
+
+    @sp.add_test(name="contribute fails if the entry is not active")
     def test():
         scenario = sp.test_scenario()
 
@@ -571,26 +617,26 @@ if __name__ == "__main__":
         )
 
         matching_round = MatchingRound(
-            entries = sp.big_map(l = { 1: entry }), 
-            entry_address_to_id = sp.big_map(l = { Addresses.ENTRY_1 : 1 })
+            entries=sp.big_map(l={1: entry}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 
         scenario += matching_round
 
         # Contribution from ALICE to disqualified ENTRY_1
         scenario += matching_round.contribute(
-            from_ = Addresses.ALICE,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 100,
+            from_=Addresses.ALICE,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=100,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = sp.timestamp(6),
-            valid = False,
-            exception = Errors.ENTRY_NOT_ACTIVE
+            sender=Addresses.DONATION_HANDLER,
+            now=sp.timestamp(6),
+            valid=False,
+            exception=Errors.ENTRY_NOT_ACTIVE,
         )
-    
-    @sp.add_test(name = "contribute fails if the contributor has already contributed")
+
+    @sp.add_test(name="contribute fails if the contributor has already contributed")
     def test():
         scenario = sp.test_scenario()
 
@@ -605,84 +651,418 @@ if __name__ == "__main__":
         )
 
         matching_round = MatchingRound(
-            entries = sp.big_map(l = { 1: entry}), 
-            entry_address_to_id = sp.big_map(l = { Addresses.ENTRY_1 : 1 })
+            entries=sp.big_map(l={1: entry}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 
         scenario += matching_round
 
         # ALICE re-contributes to ENTRY_1
         scenario += matching_round.contribute(
-            from_ = Addresses.ALICE,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 100,
+            from_=Addresses.ALICE,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=100,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = sp.timestamp(6),
-            valid = False,
-            exception = Errors.ALREADY_CONTRIBUTED
+            sender=Addresses.DONATION_HANDLER,
+            now=sp.timestamp(6),
+            valid=False,
+            exception=Errors.ALREADY_CONTRIBUTED,
         )
-    
-    @sp.add_test(name = "contribute fails for self-contributions")
+
+    @sp.add_test(name="contribute fails for self-contributions")
     def test():
         scenario = sp.test_scenario()
 
         matching_round = MatchingRound(
-            entries = sp.big_map(l = { 1: ENTRY}), 
-            entry_address_to_id = sp.big_map(l = { Addresses.ENTRY_1 : 1 })
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 
         scenario += matching_round
 
         # JOHN (creator of ENTRY_1) self contributes
         scenario += matching_round.contribute(
-            from_ = Addresses.JOHN,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 100,
+            from_=Addresses.JOHN,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=100,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = sp.timestamp(6),
-            valid = False,
-            exception = Errors.SELF_CONTRIBUTION_NOT_ALLOWED
+            sender=Addresses.DONATION_HANDLER,
+            now=sp.timestamp(6),
+            valid=False,
+            exception=Errors.SELF_CONTRIBUTION_NOT_ALLOWED,
         )
 
         # ENTRY_1 self contributes to itself
         scenario += matching_round.contribute(
-            from_ = Addresses.ENTRY_1,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = TEZOS_IDENTIFIER,
-            value = 100,
+            from_=Addresses.ENTRY_1,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=TEZOS_IDENTIFIER,
+            value=100,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = sp.timestamp(6),
-            valid = False,
-            exception = Errors.SELF_CONTRIBUTION_NOT_ALLOWED
+            sender=Addresses.DONATION_HANDLER,
+            now=sp.timestamp(6),
+            valid=False,
+            exception=Errors.SELF_CONTRIBUTION_NOT_ALLOWED,
         )
-    
-    @sp.add_test(name = "contribute fails if incorrect token identifier is used")
+
+    @sp.add_test(name="contribute fails if incorrect token identifier is used")
     def test():
         scenario = sp.test_scenario()
 
         matching_round = MatchingRound(
-            entries = sp.big_map(l = { 1: ENTRY}), 
-            entry_address_to_id = sp.big_map(l = { Addresses.ENTRY_1 : 1 })
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 
         scenario += matching_round
 
         # ALICE uses an unknown token identifier
         scenario += matching_round.contribute(
-            from_ = Addresses.ALICE,
-            entry_address = Addresses.ENTRY_1,
-            token_identifier = sp.pack("unknown"),
-            value = 100,
+            from_=Addresses.ALICE,
+            entry_address=Addresses.ENTRY_1,
+            token_identifier=sp.pack("unknown"),
+            value=100,
         ).run(
-            sender = Addresses.DONATION_HANDLER,
-            now = sp.timestamp(6),
-            valid = False,
-            exception = Errors.INVALID_TOKEN_IDENTIFIER
+            sender=Addresses.DONATION_HANDLER,
+            now=sp.timestamp(6),
+            valid=False,
+            exception=Errors.INVALID_TOKEN_IDENTIFIER,
         )
+
+    #####################
+    # disqualify_entries
+    #####################
+
+    @sp.add_test(name="disqualify_entries can disqualify a single entry")
+    def test():
+        scenario = sp.test_scenario()
+
+        entries = sp.big_map(
+            l={
+                1: sp.record(
+                    address=Addresses.ENTRY_1,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+                2: sp.record(
+                    address=Addresses.ENTRY_2,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+                3: sp.record(
+                    address=Addresses.ENTRY_3,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+            }
+        )
+
+        matching_round = MatchingRound(entries=entries)
+
+        scenario += matching_round
+
+        # Disqualify entry 1
+        scenario += matching_round.disqualify_entries(sp.list([1])).run(
+            sender=Addresses.DAO, now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + 1)
+        )
+
+        # Verify that the entries have correct status after diaqualification
+        scenario.verify(matching_round.data.entries[1].status == Entry.ENTRY_STATUS_DISQUALIFIED)
+        scenario.verify(matching_round.data.entries[2].status == Entry.ENTRY_STATUS_ACTIVE)
+        scenario.verify(matching_round.data.entries[3].status == Entry.ENTRY_STATUS_ACTIVE)
+
+    @sp.add_test(name="disqualify_entries can disqualify multiple entries")
+    def test():
+        scenario = sp.test_scenario()
+
+        entries = sp.big_map(
+            l={
+                1: sp.record(
+                    address=Addresses.ENTRY_1,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+                2: sp.record(
+                    address=Addresses.ENTRY_2,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+                3: sp.record(
+                    address=Addresses.ENTRY_3,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+            }
+        )
+
+        matching_round = MatchingRound(entries=entries)
+
+        scenario += matching_round
+
+        # Disqualify entries 2 and 3
+        scenario += matching_round.disqualify_entries(sp.list([2, 3])).run(
+            sender=Addresses.DAO, now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + 1)
+        )
+
+        # Verify that the entries have correct status after diaqualification
+        scenario.verify(matching_round.data.entries[1].status == Entry.ENTRY_STATUS_ACTIVE)
+        scenario.verify(matching_round.data.entries[2].status == Entry.ENTRY_STATUS_DISQUALIFIED)
+        scenario.verify(matching_round.data.entries[3].status == Entry.ENTRY_STATUS_DISQUALIFIED)
+
+    @sp.add_test(name="disqualify_entries fail if sender is not the DAO")
+    def test():
+        scenario = sp.test_scenario()
+
+        matching_round = MatchingRound(
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
+        )
+
+        scenario += matching_round
+
+        # RANDOM tries to disqualify ENTRY_1
+        scenario += matching_round.disqualify_entries(sp.list([1])).run(
+            sender=Addresses.RANDOM,
+            now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + 1),
+            valid=False,
+            exception=Errors.NOT_ALLOWED,
+        )
+
+    @sp.add_test(name="disqualify_entries fails if the timing is not correct")
+    def test():
+        scenario = sp.test_scenario()
+
+        matching_round = MatchingRound(
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
+        )
+
+        scenario += matching_round
+
+        # Disqualification on ENTRY_1 after cooldown period
+        scenario += matching_round.disqualify_entries(sp.list([1])).run(
+            sender=Addresses.DAO,
+            now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + COOLDOWN_PERIOD),
+            valid=False,
+            exception=Errors.COOLDOWN_PERIOD_OVER,
+        )
+
+    #######################
+    # set_clr_match_ratios
+    #######################
+
+    @sp.add_test(name="set_clr_match_ratios sets the match ratios properly")
+    def test():
+        scenario = sp.test_scenario()
+
+        entries = sp.big_map(
+            l={
+                1: sp.record(
+                    address=Addresses.ENTRY_1,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+                2: sp.record(
+                    address=Addresses.ENTRY_2,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+                3: sp.record(
+                    address=Addresses.ENTRY_3,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+            }
+        )
+
+        matching_round = MatchingRound(entries=entries)
+
+        scenario += matching_round
+
+        scenario += matching_round.set_clr_match_ratios(sp.map(l={1: 4000, 2: 3500, 3: 2500})).run(
+            sender=Addresses.DAO,
+            now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + 1),
+        )
+
+        # Verify that the set ratios are correct
+        scenario.verify(matching_round.data.entries[1].clr_match_ratio == 4000)
+        scenario.verify(matching_round.data.entries[2].clr_match_ratio == 3500)
+        scenario.verify(matching_round.data.entries[3].clr_match_ratio == 2500)
+
+        # Verify that the challenge period end has been set properly
+        scenario.verify(
+            matching_round.data.round_event_timestamps.challenge_period_end
+            == CONTRIBUTION_START.add_seconds(
+                CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + CHALLENGE_PERIOD + 1
+            )
+        )
+
+    @sp.add_test(name="set_clr_match_ratios sets the match ratios correctly more than once")
+    def test():
+        scenario = sp.test_scenario()
+
+        entries = sp.big_map(
+            l={
+                1: sp.record(
+                    address=Addresses.ENTRY_1,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+                2: sp.record(
+                    address=Addresses.ENTRY_2,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+                3: sp.record(
+                    address=Addresses.ENTRY_3,
+                    creator=Addresses.JOHN,
+                    status=Entry.ENTRY_STATUS_ACTIVE,
+                    contributions={},
+                    contributors=sp.set([]),
+                    clr_match_ratio=0,
+                    deposit_withdrawn=False,
+                ),
+            }
+        )
+
+        matching_round = MatchingRound(entries=entries)
+
+        scenario += matching_round
+
+        scenario += matching_round.set_clr_match_ratios(sp.map(l={1: 4000, 2: 3500, 3: 2500})).run(
+            sender=Addresses.DAO,
+            now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + 1),
+        )
+
+        # Re-set the match ratios before the challenge period is over
+        scenario += matching_round.set_clr_match_ratios(sp.map(l={1: 5000, 3: 1500})).run(
+            sender=Addresses.DAO,
+            now=CONTRIBUTION_START.add_seconds(
+                CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + CHALLENGE_PERIOD - 1
+            ),
+        )
+
+        # Verify that the set ratios are correct
+        scenario.verify(matching_round.data.entries[1].clr_match_ratio == 5000)
+        scenario.verify(matching_round.data.entries[2].clr_match_ratio == 3500)
+        scenario.verify(matching_round.data.entries[3].clr_match_ratio == 1500)
+
+        # Verify that the challenge period end has been set properly
+        scenario.verify(
+            matching_round.data.round_event_timestamps.challenge_period_end
+            == CONTRIBUTION_START.add_seconds(
+                CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + CHALLENGE_PERIOD + 1
+            )
+        )
+
+    @sp.add_test(name="set_clr_match_ratios fails if sender is not the DAO")
+    def test():
+        scenario = sp.test_scenario()
+
+        matching_round = MatchingRound(
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
+        )
+
+        scenario += matching_round
+
+        # RANDOM tries to set the clr matches
+        scenario += matching_round.set_clr_match_ratios(sp.map(l={1: 4000,})).run(
+            sender=Addresses.RANDOM,
+            now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + 1),
+            valid=False,
+            exception=Errors.NOT_ALLOWED,
+        )
+
+    @sp.add_test(name="set_clr_match_ratios fail if timing is incorrect")
+    def test():
+        scenario = sp.test_scenario()
+
+        matching_round = MatchingRound(
+            entries=sp.big_map(l={1: ENTRY}),
+            entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
+        )
+
+        scenario += matching_round
+
+        # Setting the match ratios before cooldown is over
+        scenario += matching_round.set_clr_match_ratios(sp.map(l={1: 4000,})).run(
+            sender=Addresses.DAO,
+            now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + COOLDOWN_PERIOD - 1),
+            valid=False,
+            exception=Errors.COOLDOWN_NOT_OVER,
+        )
+
+        # Set the match ratios at the correct time
+        scenario += matching_round.set_clr_match_ratios(sp.map(l={1: 4000,})).run(
+            sender=Addresses.DAO,
+            now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + 1),
+        )
+
+        # Verify if the match is set, and challenge period updated
+        scenario.verify(matching_round.data.entries[1].clr_match_ratio == 4000)
+        scenario.verify(
+            matching_round.data.round_event_timestamps.challenge_period_end
+            == CONTRIBUTION_START.add_seconds(
+                CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + CHALLENGE_PERIOD + 1
+            )
+        )
+
+        # Set the match ratios again after the challenge period is over
+        scenario += matching_round.set_clr_match_ratios(sp.map(l={1: 4000,})).run(
+            sender=Addresses.DAO,
+            now=CONTRIBUTION_START.add_seconds(
+                CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + CHALLENGE_PERIOD + 1
+            ),
+            valid=False,
+            exception=Errors.CHALLENGE_PERIOD_OVER,
+        )
+
 
 sp.add_compilation_target("matching_round", MatchingRound())
