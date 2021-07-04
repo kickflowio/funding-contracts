@@ -1,0 +1,191 @@
+parameter (or (or (unit %accept_administration) (or (address %add_governor) (address %propose_new_admin))) (or (address %remove_governor) (or (address %verify_whitelisted) (list %whitelist_addresses address))));
+storage   (pair (pair (address %admin) (set %governors address)) (pair (option %proposed_admin address) (set %whitelist address)));
+code
+  {
+    CAST (pair (or (or unit (or address address)) (or address (or address (list address)))) (pair (pair address (set address)) (pair (option address) (set address)))); # pair (or (or unit (or address address)) (or address (or address (list address)))) (pair (pair address (set address)) (pair (option address) (set address)))
+    UNPAIR;     # or (or unit (or address address)) (or address (or address (list address))) : pair (pair address (set address)) (pair (option address) (set address))
+    IF_LEFT
+      {
+        IF_LEFT
+          {
+            DROP;       # pair (pair address (set address)) (pair (option address) (set address))
+            # == accept_administration ==
+            # sp.verify(self.data.proposed_admin.is_some(), 'NO_ADMIN_PROPOSED') # pair (pair address (set address)) (pair (option address) (set address))
+            DUP;        # pair (pair address (set address)) (pair (option address) (set address)) : pair (pair address (set address)) (pair (option address) (set address))
+            GET 3;      # option address : pair (pair address (set address)) (pair (option address) (set address))
+            IF_SOME
+              {
+                DROP;       # pair (pair address (set address)) (pair (option address) (set address))
+              }
+              {
+                PUSH string "NO_ADMIN_PROPOSED"; # string : pair (pair address (set address)) (pair (option address) (set address))
+                FAILWITH;   # FAILED
+              }; # pair (pair address (set address)) (pair (option address) (set address))
+            # sp.verify(sp.sender == self.data.proposed_admin.open_some(), 'NOT_ALLOWED') # pair (pair address (set address)) (pair (option address) (set address))
+            DUP;        # pair (pair address (set address)) (pair (option address) (set address)) : pair (pair address (set address)) (pair (option address) (set address))
+            GET 3;      # option address : pair (pair address (set address)) (pair (option address) (set address))
+            IF_SOME
+              {}
+              {
+                PUSH int 82; # int : pair (pair address (set address)) (pair (option address) (set address))
+                FAILWITH;   # FAILED
+              }; # @some : pair (pair address (set address)) (pair (option address) (set address))
+            SENDER;     # @sender : @some : pair (pair address (set address)) (pair (option address) (set address))
+            COMPARE;    # int : pair (pair address (set address)) (pair (option address) (set address))
+            EQ;         # bool : pair (pair address (set address)) (pair (option address) (set address))
+            IF
+              {}
+              {
+                PUSH string "NOT_ALLOWED"; # string : pair (pair address (set address)) (pair (option address) (set address))
+                FAILWITH;   # FAILED
+              }; # pair (pair address (set address)) (pair (option address) (set address))
+            # self.data.admin = sp.sender # pair (pair address (set address)) (pair (option address) (set address))
+            UNPAIR;     # pair address (set address) : pair (option address) (set address)
+            CDR;        # set address : pair (option address) (set address)
+            SENDER;     # @sender : set address : pair (option address) (set address)
+            PAIR;       # pair @sender (set address) : pair (option address) (set address)
+            PAIR;       # pair (pair @sender (set address)) (pair (option address) (set address))
+            # self.data.proposed_admin = sp.none # pair (pair @sender (set address)) (pair (option address) (set address))
+            NONE address; # option address : pair (pair @sender (set address)) (pair (option address) (set address))
+            UPDATE 3;   # pair (pair @sender (set address)) (pair (option address) (set address))
+          }
+          {
+            IF_LEFT
+              {
+                SWAP;       # pair (pair address (set address)) (pair (option address) (set address)) : address
+                # == add_governor ==
+                # sp.verify(sp.sender == self.data.admin, 'NOT_ALLOWED') # pair (pair address (set address)) (pair (option address) (set address)) : address
+                DUP;        # pair (pair address (set address)) (pair (option address) (set address)) : pair (pair address (set address)) (pair (option address) (set address)) : address
+                DUG 2;      # pair (pair address (set address)) (pair (option address) (set address)) : address : pair (pair address (set address)) (pair (option address) (set address))
+                CAR;        # pair address (set address) : address : pair (pair address (set address)) (pair (option address) (set address))
+                CAR;        # address : address : pair (pair address (set address)) (pair (option address) (set address))
+                SENDER;     # @sender : address : address : pair (pair address (set address)) (pair (option address) (set address))
+                COMPARE;    # int : address : pair (pair address (set address)) (pair (option address) (set address))
+                EQ;         # bool : address : pair (pair address (set address)) (pair (option address) (set address))
+                IF
+                  {}
+                  {
+                    PUSH string "NOT_ALLOWED"; # string : address : pair (pair address (set address)) (pair (option address) (set address))
+                    FAILWITH;   # FAILED
+                  }; # address : pair (pair address (set address)) (pair (option address) (set address))
+                SWAP;       # pair (pair address (set address)) (pair (option address) (set address)) : address
+                # self.data.governors.add(params) # pair (pair address (set address)) (pair (option address) (set address)) : address
+                UNPAIR;     # pair address (set address) : pair (option address) (set address) : address
+                UNPAIR;     # address : set address : pair (option address) (set address) : address
+                SWAP;       # set address : address : pair (option address) (set address) : address
+                PUSH bool True; # bool : set address : address : pair (option address) (set address) : address
+                DIG 4;      # address : bool : set address : address : pair (option address) (set address)
+                UPDATE;     # set address : address : pair (option address) (set address)
+                SWAP;       # address : set address : pair (option address) (set address)
+                PAIR;       # pair address (set address) : pair (option address) (set address)
+                PAIR;       # pair (pair address (set address)) (pair (option address) (set address))
+              }
+              {
+                SWAP;       # pair (pair address (set address)) (pair (option address) (set address)) : address
+                # == propose_new_admin ==
+                # sp.verify(sp.sender == self.data.admin, 'NOT_ALLOWED') # pair (pair address (set address)) (pair (option address) (set address)) : address
+                DUP;        # pair (pair address (set address)) (pair (option address) (set address)) : pair (pair address (set address)) (pair (option address) (set address)) : address
+                DUG 2;      # pair (pair address (set address)) (pair (option address) (set address)) : address : pair (pair address (set address)) (pair (option address) (set address))
+                CAR;        # pair address (set address) : address : pair (pair address (set address)) (pair (option address) (set address))
+                CAR;        # address : address : pair (pair address (set address)) (pair (option address) (set address))
+                SENDER;     # @sender : address : address : pair (pair address (set address)) (pair (option address) (set address))
+                COMPARE;    # int : address : pair (pair address (set address)) (pair (option address) (set address))
+                EQ;         # bool : address : pair (pair address (set address)) (pair (option address) (set address))
+                IF
+                  {}
+                  {
+                    PUSH string "NOT_ALLOWED"; # string : address : pair (pair address (set address)) (pair (option address) (set address))
+                    FAILWITH;   # FAILED
+                  }; # address : pair (pair address (set address)) (pair (option address) (set address))
+                # self.data.proposed_admin = sp.some(params) # address : pair (pair address (set address)) (pair (option address) (set address))
+                SOME;       # option address : pair (pair address (set address)) (pair (option address) (set address))
+                UPDATE 3;   # pair (pair address (set address)) (pair (option address) (set address))
+              }; # pair (pair address (set address)) (pair (option address) (set address))
+          }; # pair (pair address (set address)) (pair (option address) (set address))
+      }
+      {
+        IF_LEFT
+          {
+            SWAP;       # pair (pair address (set address)) (pair (option address) (set address)) : address
+            # == remove_governor ==
+            # sp.verify(sp.sender == self.data.admin, 'NOT_ALLOWED') # pair (pair address (set address)) (pair (option address) (set address)) : address
+            DUP;        # pair (pair address (set address)) (pair (option address) (set address)) : pair (pair address (set address)) (pair (option address) (set address)) : address
+            DUG 2;      # pair (pair address (set address)) (pair (option address) (set address)) : address : pair (pair address (set address)) (pair (option address) (set address))
+            CAR;        # pair address (set address) : address : pair (pair address (set address)) (pair (option address) (set address))
+            CAR;        # address : address : pair (pair address (set address)) (pair (option address) (set address))
+            SENDER;     # @sender : address : address : pair (pair address (set address)) (pair (option address) (set address))
+            COMPARE;    # int : address : pair (pair address (set address)) (pair (option address) (set address))
+            EQ;         # bool : address : pair (pair address (set address)) (pair (option address) (set address))
+            IF
+              {}
+              {
+                PUSH string "NOT_ALLOWED"; # string : address : pair (pair address (set address)) (pair (option address) (set address))
+                FAILWITH;   # FAILED
+              }; # address : pair (pair address (set address)) (pair (option address) (set address))
+            SWAP;       # pair (pair address (set address)) (pair (option address) (set address)) : address
+            # self.data.governors.remove(params) # pair (pair address (set address)) (pair (option address) (set address)) : address
+            UNPAIR;     # pair address (set address) : pair (option address) (set address) : address
+            UNPAIR;     # address : set address : pair (option address) (set address) : address
+            SWAP;       # set address : address : pair (option address) (set address) : address
+            PUSH bool False; # bool : set address : address : pair (option address) (set address) : address
+            DIG 4;      # address : bool : set address : address : pair (option address) (set address)
+            UPDATE;     # set address : address : pair (option address) (set address)
+            SWAP;       # address : set address : pair (option address) (set address)
+            PAIR;       # pair address (set address) : pair (option address) (set address)
+            PAIR;       # pair (pair address (set address)) (pair (option address) (set address))
+          }
+          {
+            IF_LEFT
+              {
+                SWAP;       # pair (pair address (set address)) (pair (option address) (set address)) : address
+                # == verify_whitelisted ==
+                # sp.verify(self.data.whitelist.contains(params), 'ADDRESS_NOT_WHITELISTED') # pair (pair address (set address)) (pair (option address) (set address)) : address
+                DUP;        # pair (pair address (set address)) (pair (option address) (set address)) : pair (pair address (set address)) (pair (option address) (set address)) : address
+                DUG 2;      # pair (pair address (set address)) (pair (option address) (set address)) : address : pair (pair address (set address)) (pair (option address) (set address))
+                GET 4;      # set address : address : pair (pair address (set address)) (pair (option address) (set address))
+                SWAP;       # address : set address : pair (pair address (set address)) (pair (option address) (set address))
+                MEM;        # bool : pair (pair address (set address)) (pair (option address) (set address))
+                IF
+                  {}
+                  {
+                    PUSH string "ADDRESS_NOT_WHITELISTED"; # string : pair (pair address (set address)) (pair (option address) (set address))
+                    FAILWITH;   # FAILED
+                  }; # pair (pair address (set address)) (pair (option address) (set address))
+              }
+              {
+                SWAP;       # pair (pair address (set address)) (pair (option address) (set address)) : list address
+                # == whitelist_addresses ==
+                # sp.verify(self.data.governors.contains(sp.sender), 'NOT_ALLOWED') # pair (pair address (set address)) (pair (option address) (set address)) : list address
+                DUP;        # pair (pair address (set address)) (pair (option address) (set address)) : pair (pair address (set address)) (pair (option address) (set address)) : list address
+                DUG 2;      # pair (pair address (set address)) (pair (option address) (set address)) : list address : pair (pair address (set address)) (pair (option address) (set address))
+                CAR;        # pair address (set address) : list address : pair (pair address (set address)) (pair (option address) (set address))
+                CDR;        # set address : list address : pair (pair address (set address)) (pair (option address) (set address))
+                SENDER;     # @sender : set address : list address : pair (pair address (set address)) (pair (option address) (set address))
+                MEM;        # bool : list address : pair (pair address (set address)) (pair (option address) (set address))
+                IF
+                  {}
+                  {
+                    PUSH string "NOT_ALLOWED"; # string : list address : pair (pair address (set address)) (pair (option address) (set address))
+                    FAILWITH;   # FAILED
+                  }; # list address : pair (pair address (set address)) (pair (option address) (set address))
+                # for addr in params: ... # list address : pair (pair address (set address)) (pair (option address) (set address))
+                DUP;        # list address : list address : pair (pair address (set address)) (pair (option address) (set address))
+                ITER
+                  {
+                    # self.data.whitelist.add(addr) # address : list address : pair (pair address (set address)) (pair (option address) (set address))
+                    DIG 2;      # pair (pair address (set address)) (pair (option address) (set address)) : address : list address
+                    DUP;        # pair (pair address (set address)) (pair (option address) (set address)) : pair (pair address (set address)) (pair (option address) (set address)) : address : list address
+                    GET 4;      # set address : pair (pair address (set address)) (pair (option address) (set address)) : address : list address
+                    PUSH bool True; # bool : set address : pair (pair address (set address)) (pair (option address) (set address)) : address : list address
+                    DIG 3;      # address : bool : set address : pair (pair address (set address)) (pair (option address) (set address)) : list address
+                    UPDATE;     # set address : pair (pair address (set address)) (pair (option address) (set address)) : list address
+                    UPDATE 4;   # pair (pair address (set address)) (pair (option address) (set address)) : list address
+                    SWAP;       # list address : pair (pair address (set address)) (pair (option address) (set address))
+                  }; # list address : pair (pair address (set address)) (pair (option address) (set address))
+                DROP;       # pair (pair address (set address)) (pair (option address) (set address))
+              }; # pair (pair address (set address)) (pair (option address) (set address))
+          }; # pair (pair address (set address)) (pair (option address) (set address))
+      }; # pair (pair address (set address)) (pair (option address) (set address))
+    NIL operation; # list operation : pair (pair address (set address)) (pair (option address) (set address))
+    PAIR;       # pair (list operation) (pair (pair address (set address)) (pair (option address) (set address)))
+  };

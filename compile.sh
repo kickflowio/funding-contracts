@@ -16,7 +16,7 @@ OUT_DIR=./test_outputs
 COMP_DIR=./michelson
 
 # Array of files to compile.
-CONTRACTS_ARRAY=(donation_handler matching_round)
+CONTRACTS_ARRAY=(donation_handler matching_round whitelist)
 
 # Ensure we have a SmartPy binary.
 if [ ! -f "$SMART_PY_CLI" ]; then

@@ -8,9 +8,6 @@ ONLY_DAO_ALLOWED = "ONLY_DAO_ALLOWED"
 # Generic not allowed
 NOT_ALLOWED = "NOT_ALLOWED"
 
-# Address is not in the whitelist
-ADDRESS_NOT_WHITELISTED = "ADDRESS_NOT_WHITELISTED"
-
 ###################
 # Donation Handler
 ###################
@@ -90,3 +87,16 @@ ENTRY_DISQUALIFIED = "ENTRY_DISQUALIFIED"
 
 # Entry has already withdrawn the deposit
 DEPOSIT_ALREADY_WITHDRAWN = "DEPOSIT_ALREADY_WITHDRAWN"
+
+############
+# Whitelist
+############
+
+# Address is not in the whitelist
+ADDRESS_NOT_WHITELISTED = "ADDRESS_NOT_WHITELISTED"
+
+# No admin has been proposed for the contract
+NO_ADMIN_PROPOSED = "NO_ADMIN_PROPOSED"
+
+# The given address is not whitelisted
+ADDRESS_NOT_WHITELISTED = "ADDRESS_NOT_WHITELISTED"

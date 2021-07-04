@@ -3,6 +3,9 @@ import smartpy as sp
 # Admin address
 ADMIN = sp.address("tz1Kf25fX1VdmYGSEzwFy1wNmkbSEZ2V83sY")
 
+# Governor address
+GOVERNOR = sp.address("tz1ZQDgKHTotT9R5SURWDJw1kD2phLn4Ncp1")
+
 # Named addresses
 ALICE = sp.address("tz1KfEsrtDaA1sX7vdM4qmEPWuSytuqCDp5j")
 BOB = sp.address("tz1Kt4P8BCaP93AEV4eA7gmpRryWt5hznjCP")
