@@ -15,6 +15,7 @@ DONATION_HANDLER = sp.address("tz1W5VkdB5s7ENMESVBtwyt9kyvLqPcUczRT")
 STABLECOIN = sp.address("tz1bhMc5uPJynkrHpw7pAiBt6YMhQktn7owF")
 WHITELIST = sp.address("tz1bZ6EWRJvYUccpUtfaYmUjaA3gSB6dKRW8")
 DAO = sp.address("tz1cmBHhCvwSg9rXTdNFmVMR3xE2JWK3rhTF")
+COMMUNITY_FUND = sp.address("tz1Z4HEApoZ8Yum7RTc94Nqt2eepRcHFSqcQ")
 
 # Entry addresses
 ENTRY_1 = sp.address("tz1cXYGQtku5bZtRDXwGyMw7Y52AYkpX2vH1")

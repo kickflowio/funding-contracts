@@ -67,8 +67,26 @@ INVALID_TOKEN_IDENTIFIER = "INVALID_TOKEN_IDENTIFIER"
 # Can not disqualify the entries since the cooldown period is over
 COOLDOWN_PERIOD_OVER = "COOLDOWN_PERIOD_OVER"
 
+# The entry is already disqualified
+ENTRY_ALREADY_DISQUALIFIED = "ENTRY_ALREADY_DISQUALIFIED"
+
 # The cooldown period is not over yet
 COOLDOWN_NOT_OVER = "COOLDOWN_NOT_OVER"
 
 # The period to set and challenge CLR is over
 CHALLENGE_PERIOD_OVER = "CLR_SETTING_PERIOD_OVER"
+
+# Challenge period is still on
+CHALLENGE_PERIOD_ONGOING = "CHALLENGE_PERIOD_ONGOING"
+
+# Matches haven't been set yet
+MATCHES_NOT_SET = "MATCHES_NOT_SET"
+
+# The entry has a zero match
+ZERO_CLR_MATCH = "ZERO_CLR_MATCH"
+
+# The entry is disqualified
+ENTRY_DISQUALIFIED = "ENTRY_DISQUALIFIED"
+
+# Entry has already withdrawn the deposit
+DEPOSIT_ALREADY_WITHDRAWN = "DEPOSIT_ALREADY_WITHDRAWN"

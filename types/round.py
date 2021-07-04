@@ -5,7 +5,6 @@ ROUND_EVENT_TIMESTAMPS_TYPE = sp.TRecord(
     contribution_end=sp.TTimestamp,
     cooldown_period_end=sp.TTimestamp,
     challenge_period_end=sp.TTimestamp,
-    withdrawal_period_end=sp.TTimestamp,
 )
 
 ROUND_META_TYPE = sp.TRecord(
@@ -14,4 +13,5 @@ ROUND_META_TYPE = sp.TRecord(
     dao_address=sp.TAddress,
     stablecoin_address=sp.TAddress,
     donation_handler_address=sp.TAddress,
+    community_fund_address=sp.TAddress,
 )

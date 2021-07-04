@@ -10,7 +10,7 @@ ENTRY_TYPE = sp.TRecord(
     status=sp.TNat,
     contributions=CONTRIBUTION_TYPE,
     contributors=sp.TSet(sp.TAddress),
-    clr_match_ratio=sp.TNat,
+    clr_match=sp.TNat,
     deposit_withdrawn=sp.TBool,
 )
 
