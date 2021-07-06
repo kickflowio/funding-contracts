@@ -6,7 +6,8 @@ DummyWhitelist = sp.io.import_script_from_url("file:helpers/dummy_whitelist.py")
 DummyToken = sp.io.import_script_from_url("file:helpers/dummy_token.py")
 Errors = sp.io.import_script_from_url("file:types/errors.py")
 
-TEZOS_IDENTIFIER = sp.pack("TEZOS_IDENTIFIER")
+# Token identifier used for tez contributions
+TEZ_IDENTIFIER = sp.pack("TEZ_IDENTIFIER")
 
 
 class DonationHandler(sp.Contract):
@@ -22,6 +23,7 @@ class DonationHandler(sp.Contract):
             dao_address=dao_address,
         )
 
+    # Relays the donation to the entry's address can calls the 'contribute' entrypoint of Round contract
     @sp.entry_point
     def donate(self, params):
         sp.set_type(
@@ -46,15 +48,17 @@ class DonationHandler(sp.Contract):
         # Create contract instance for round contract, to call contribute entry point
         cr = sp.contract(
             sp.TRecord(
-                from_=sp.TAddress, entry_address=sp.TAddress, token_identifier=sp.TBytes, value=sp.TNat
+                from_=sp.TAddress,
+                entry_address=sp.TAddress,
+                token_identifier=sp.TBytes,
+                value=sp.TNat,
             ),
             self.data.round_address.open_some(),
             "contribute",
         ).open_some()
 
-
         # If token_identifier is of tez, then transfer tez to the entry
-        sp.if params.token_identifier == TEZOS_IDENTIFIER:
+        sp.if params.token_identifier == TEZ_IDENTIFIER:
             # Get Nat value of sent amount
             tez_val = sp.utils.mutez_to_nat(sp.amount)
 
@@ -152,8 +156,14 @@ if __name__ == "__main__":
 
         # Make a donation of 1000 mutez
         scenario += donation_handler.donate(
-            token_identifier=TEZOS_IDENTIFIER, entry_address=Addresses.ENTRY_1, value=1000
-        ).run(amount=sp.mutez(1000), sender=Addresses.ALICE, valid=True)
+            token_identifier=TEZ_IDENTIFIER,
+            entry_address=Addresses.ENTRY_1,
+            value=1000,
+        ).run(
+            amount=sp.mutez(1000),
+            sender=Addresses.ALICE,
+            valid=True,
+        )
 
     @sp.add_test(name="donate relays FA12 token donations to the entry_address specified")
     def test():
@@ -163,7 +173,8 @@ if __name__ == "__main__":
         whitelist = DummyWhitelist.DummyWhitelist(True)
         matching_round = DummyRound.DummyRound()
         donation_handler = DonationHandler(
-            round_address=sp.some(matching_round.address), whitelist_address=whitelist.address
+            round_address=sp.some(matching_round.address),
+            whitelist_address=whitelist.address,
         )
 
         scenario += donation_handler
@@ -181,7 +192,9 @@ if __name__ == "__main__":
 
         # ALICE donates 80 tokens to ENTRY_1
         scenario += donation_handler.donate(
-            token_identifier=sp.pack(token.address), entry_address=Addresses.ENTRY_1, value=80
+            token_identifier=sp.pack(token.address),
+            entry_address=Addresses.ENTRY_1,
+            value=80,
         ).run(sender=Addresses.ALICE)
 
         # Verify balances of the parties
@@ -198,7 +211,9 @@ if __name__ == "__main__":
         scenario += donation_handler
 
         scenario += donation_handler.donate(
-            token_identifier=TEZOS_IDENTIFIER, entry_address=Addresses.ENTRY_1, value=1000
+            token_identifier=TEZ_IDENTIFIER,
+            entry_address=Addresses.ENTRY_1,
+            value=1000,
         ).run(
             amount=sp.mutez(1000),
             sender=Addresses.ALICE,
@@ -214,7 +229,8 @@ if __name__ == "__main__":
         whitelist = DummyWhitelist.DummyWhitelist(False)
         matching_round = DummyRound.DummyRound()
         donation_handler = DonationHandler(
-            round_address=sp.some(matching_round.address), whitelist_address=whitelist.address
+            round_address=sp.some(matching_round.address),
+            whitelist_address=whitelist.address,
         )
 
         scenario += donation_handler
@@ -223,14 +239,16 @@ if __name__ == "__main__":
 
         # Make a donation of 1000 mutez
         scenario += donation_handler.donate(
-            token_identifier=TEZOS_IDENTIFIER, entry_address=Addresses.ENTRY_1, value=1000
+            token_identifier=TEZ_IDENTIFIER,
+            entry_address=Addresses.ENTRY_1,
+            value=1000,
         ).run(
             amount=sp.mutez(1000),
             sender=Addresses.ALICE,
             valid=False,
             exception=Errors.ADDRESS_NOT_WHITELISTED,
         )
-    
+
     @sp.add_test(name="donate fails if donation value is zero")
     def test():
         scenario = sp.test_scenario()
@@ -239,7 +257,8 @@ if __name__ == "__main__":
         whitelist = DummyWhitelist.DummyWhitelist(True)
         matching_round = DummyRound.DummyRound()
         donation_handler = DonationHandler(
-            round_address=sp.some(matching_round.address), whitelist_address=whitelist.address
+            round_address=sp.some(matching_round.address),
+            whitelist_address=whitelist.address,
         )
 
         scenario += donation_handler
@@ -248,7 +267,9 @@ if __name__ == "__main__":
 
         # Make a donation of 1000 mutez
         scenario += donation_handler.donate(
-            token_identifier=TEZOS_IDENTIFIER, entry_address=Addresses.ENTRY_1, value=0
+            token_identifier=TEZ_IDENTIFIER,
+            entry_address=Addresses.ENTRY_1,
+            value=0,
         ).run(
             amount=sp.mutez(0),
             sender=Addresses.ALICE,
@@ -263,7 +284,8 @@ if __name__ == "__main__":
         whitelist = DummyWhitelist.DummyWhitelist(True)
         matching_round = DummyRound.DummyRound()
         donation_handler = DonationHandler(
-            round_address=sp.some(matching_round.address), whitelist_address=whitelist.address
+            round_address=sp.some(matching_round.address),
+            whitelist_address=whitelist.address,
         )
 
         scenario += donation_handler
@@ -272,7 +294,9 @@ if __name__ == "__main__":
 
         # Make a donation of 1000 mutez
         scenario += donation_handler.donate(
-            token_identifier=TEZOS_IDENTIFIER, entry_address=Addresses.ENTRY_1, value=1200
+            token_identifier=TEZ_IDENTIFIER,
+            entry_address=Addresses.ENTRY_1,
+            value=1200,
         ).run(
             amount=sp.mutez(1000),
             sender=Addresses.ALICE,
@@ -354,5 +378,6 @@ if __name__ == "__main__":
 
         # Verify if whitelist address is unchanged
         scenario.verify(donation_handler.data.whitelist_address == Addresses.WHITELIST)
+
 
 sp.add_compilation_target("donation_handler", DonationHandler())

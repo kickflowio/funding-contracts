@@ -28,7 +28,7 @@ code
         IF_SOME
           {}
           {
-            PUSH int 40; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
+            PUSH int 42; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             FAILWITH;   # FAILED
           }; # @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
         PUSH mutez 0; # mutez : @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
@@ -47,8 +47,8 @@ code
             PUSH string "ZERO_DONATION_NOT_ALLOWED"; # string : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             FAILWITH;   # FAILED
           }; # list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
-        # if params.token_identifier == sp.pack('TEZOS_IDENTIFIER'): # list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
-        PUSH string "TEZOS_IDENTIFIER"; # string : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
+        # if params.token_identifier == sp.pack('TEZ_IDENTIFIER'): # list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
+        PUSH string "TEZ_IDENTIFIER"; # string : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
         PACK;       # bytes : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
         DUP 3;      # pair address (pair bytes nat) : bytes : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
         GET 3;      # bytes : bytes : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
@@ -83,14 +83,14 @@ code
             IF_SOME
               {}
               {
-                PUSH int 51; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
+                PUSH int 56; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
                 FAILWITH;   # FAILED
               }; # @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             CONTRACT %contribute (pair (pair address address) (pair bytes nat)); # option (contract (pair (pair address address) (pair bytes nat))) : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             IF_SOME
               {}
               {
-                PUSH int 47; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
+                PUSH int 49; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
                 FAILWITH;   # FAILED
               }; # @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             PUSH mutez 0; # mutez : @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
@@ -121,7 +121,7 @@ code
             IF_SOME
               {}
               {
-                PUSH int 77; # int : list operation : pair address (pair (option address) address)
+                PUSH int 81; # int : list operation : pair address (pair (option address) address)
                 FAILWITH;   # FAILED
               }; # @some : list operation : pair address (pair (option address) address)
             AMOUNT;     # @amount : @some : list operation : pair address (pair (option address) address)
@@ -136,14 +136,14 @@ code
             IF_SOME
               {}
               {
-                PUSH int 51; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
+                PUSH int 56; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
                 FAILWITH;   # FAILED
               }; # @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             CONTRACT %contribute (pair (pair address address) (pair bytes nat)); # option (contract (pair (pair address address) (pair bytes nat))) : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             IF_SOME
               {}
               {
-                PUSH int 47; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
+                PUSH int 49; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
                 FAILWITH;   # FAILED
               }; # @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             PUSH mutez 0; # mutez : @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
@@ -171,14 +171,14 @@ code
             IF_SOME
               {}
               {
-                PUSH int 93; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
+                PUSH int 97; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
                 FAILWITH;   # FAILED
               }; # @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             CONTRACT %transfer (pair address (pair address nat)); # option (contract (pair address (pair address nat))) : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             IF_SOME
               {}
               {
-                PUSH int 96; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
+                PUSH int 100; # int : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
                 FAILWITH;   # FAILED
               }; # @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)
             PUSH mutez 0; # mutez : @some : list operation : pair address (pair bytes nat) : pair address (pair (option address) address)

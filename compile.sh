@@ -3,7 +3,7 @@
 set -e -o pipefail
 
 echo "----------------------------------------"
-echo "Compiling Dao Contracts"
+echo "Compiling Funding Contracts"
 echo "----------------------------------------"
 
 # Expected location of SmartPy CLI.

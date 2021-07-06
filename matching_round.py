@@ -11,17 +11,26 @@ Entry = sp.io.import_script_from_url("file:types/entry.py")
 # Constants
 ############
 
-TEZOS_IDENTIFIER = sp.pack("TEZOS_IDENTIFIER")
+# Token identifier for tez contributions
+TEZ_IDENTIFIER = sp.pack("TEZ_IDENTIFIER")
 
+# Mandatory security deposit for the entries. Refundable only if the entry is not disqualified.
+# Transferred to community fund otherwise.
 SECURITY_DEPOSIT_AMOUNT = sp.tez(10)
+
+#################
+# Time constants
+#################
 
 # Seconds in a day
 DAY = 86400
-
-# Time contants
+# Timestamp when entries can start accepting contributions
 CONTRIBUTION_START = sp.timestamp(5)
+# Length of period in which contributions can be accepted by the entries.
 CONTRIBUTION_PERIOD = 30 * DAY
+# Length of period in which the contributions can be assessed, and dubious entries be disqualfied
 COOLDOWN_PERIOD = 7 * DAY
+# Length of period in which the set CLR matches can be challenged in the DAO
 CHALLENGE_PERIOD = 7 * DAY
 
 #################
@@ -36,7 +45,7 @@ ROUND_EVENT_TIMESTAMPS = sp.record(
 )
 
 ROUND_META = sp.record(
-    token_set=sp.set([TEZOS_IDENTIFIER]),
+    token_set=sp.set([TEZ_IDENTIFIER]),
     security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
     dao_address=Addresses.DAO,
     stablecoin_address=Addresses.STABLECOIN,
@@ -126,6 +135,7 @@ class MatchingRound(sp.Contract):
         self.data.sponsors[sp.sender] = value
         self.data.total_sponsored_amount += value
 
+    # Allows entry to the round up to the contribution start timestamp.
     @sp.entry_point
     def enter_round(self, address):
         sp.set_type(address, sp.TAddress)
@@ -159,6 +169,7 @@ class MatchingRound(sp.Contract):
         self.data.entries[self.data.uuid] = entry
         self.data.entry_address_to_id[address] = self.data.uuid
 
+    # Called by the donation handler contract to record the contribution value
     @sp.entry_point
     def contribute(self, params):
         sp.set_type(
@@ -215,6 +226,8 @@ class MatchingRound(sp.Contract):
         entry.contributions[params.token_identifier].push(params.value)
         entry.contributors.add(params.from_)
 
+    # Allows disqualification of entries through the DAO, from the beginning of the round until
+    # the end of the cooldown period. 
     @sp.entry_point
     def disqualify_entries(self, entry_list):
         sp.set_type(entry_list, sp.TList(sp.TNat))
@@ -242,6 +255,7 @@ class MatchingRound(sp.Contract):
             sp.utils.nat_to_mutez(security_deposit_nat * sp.len(entry_list)),
         )
 
+    # Allows DAO to set the matches for the entries once the cooldown period is over
     @sp.entry_point
     def set_clr_matches(self, matches_map):
         sp.set_type(matches_map, sp.TMap(sp.TNat, sp.TNat))
@@ -270,6 +284,7 @@ class MatchingRound(sp.Contract):
         sp.for entry_id in matches_map.keys():
             self.data.entries[entry_id].clr_match = matches_map[entry_id]
 
+    # Allows entry to withdraw their match, once the challenge period is over
     @sp.entry_point
     def withdraw_match(self, address):
         sp.set_type(address, sp.TAddress)
@@ -317,6 +332,7 @@ class MatchingRound(sp.Contract):
         # Set entry status to closed
         entry.status = Entry.ENTRY_STATUS_CLOSED
 
+    # Allows non-disqualified entries to withdraw their security deposit after the cooldown period
     @sp.entry_point
     def withdraw_deposit(self, address):
         sp.set_type(address, sp.TAddress)
@@ -361,7 +377,7 @@ if __name__ == "__main__":
         stablecoin = DummyToken.FA12(Addresses.ADMIN)
 
         round_meta = sp.record(
-            token_set=sp.set([TEZOS_IDENTIFIER]),
+            token_set=sp.set([TEZ_IDENTIFIER]),
             security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
             dao_address=Addresses.DAO,
             stablecoin_address=stablecoin.address,
@@ -572,7 +588,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.ALICE,
             entry_address=Addresses.ENTRY_1,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=100,
         ).run(
             sender=Addresses.DONATION_HANDLER,
@@ -583,7 +599,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.BOB,
             entry_address=Addresses.ENTRY_1,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=200,
         ).run(
             sender=Addresses.DONATION_HANDLER,
@@ -594,14 +610,14 @@ if __name__ == "__main__":
 
         # Verify the number of contributors
         scenario.verify(sp.len(entry.contributors.elements()) == 2)
-        scenario.verify(sp.len(entry.contributions[TEZOS_IDENTIFIER]) == 2)
+        scenario.verify(sp.len(entry.contributions[TEZ_IDENTIFIER]) == 2)
 
         # Verify that correct contributors are recorded
         scenario.verify(entry.contributors.contains(Addresses.ALICE))
         scenario.verify(entry.contributors.contains(Addresses.BOB))
 
         # Verify the correctness of the contributions
-        l = entry.contributions[TEZOS_IDENTIFIER]
+        l = entry.contributions[TEZ_IDENTIFIER]
         scenario.verify_equal(l, [200, 100])
 
     @sp.add_test(name="contribute fails if the sender is not donation_handler")
@@ -619,7 +635,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.ALICE,
             entry_address=Addresses.ENTRY_1,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=100,
         ).run(
             sender=Addresses.RANDOM,
@@ -643,7 +659,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.ALICE,
             entry_address=Addresses.RANDOM,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=100,
         ).run(
             sender=Addresses.DONATION_HANDLER,
@@ -667,7 +683,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.ALICE,
             entry_address=Addresses.ENTRY_1,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=100,
         ).run(
             sender=Addresses.DONATION_HANDLER,
@@ -680,7 +696,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.ALICE,
             entry_address=Addresses.ENTRY_1,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=100,
         ).run(
             sender=Addresses.DONATION_HANDLER,
@@ -714,7 +730,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.ALICE,
             entry_address=Addresses.ENTRY_1,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=100,
         ).run(
             sender=Addresses.DONATION_HANDLER,
@@ -748,7 +764,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.ALICE,
             entry_address=Addresses.ENTRY_1,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=100,
         ).run(
             sender=Addresses.DONATION_HANDLER,
@@ -772,7 +788,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.JOHN,
             entry_address=Addresses.ENTRY_1,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=100,
         ).run(
             sender=Addresses.DONATION_HANDLER,
@@ -785,7 +801,7 @@ if __name__ == "__main__":
         scenario += matching_round.contribute(
             from_=Addresses.ENTRY_1,
             entry_address=Addresses.ENTRY_1,
-            token_identifier=TEZOS_IDENTIFIER,
+            token_identifier=TEZ_IDENTIFIER,
             value=100,
         ).run(
             sender=Addresses.DONATION_HANDLER,
@@ -862,7 +878,7 @@ if __name__ == "__main__":
         community_fund.set_initial_balance(sp.tez(0))
 
         round_meta = sp.record(
-            token_set=sp.set([TEZOS_IDENTIFIER]),
+            token_set=sp.set([TEZ_IDENTIFIER]),
             security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
             dao_address=Addresses.DAO,
             stablecoin_address=Addresses.STABLECOIN,
@@ -932,7 +948,7 @@ if __name__ == "__main__":
         community_fund.set_initial_balance(sp.tez(0))
 
         round_meta = sp.record(
-            token_set=sp.set([TEZOS_IDENTIFIER]),
+            token_set=sp.set([TEZ_IDENTIFIER]),
             security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
             dao_address=Addresses.DAO,
             stablecoin_address=Addresses.STABLECOIN,
@@ -1292,7 +1308,7 @@ if __name__ == "__main__":
         stablecoin = DummyToken.FA12(Addresses.ADMIN)
 
         round_meta = sp.record(
-            token_set=sp.set([TEZOS_IDENTIFIER]),
+            token_set=sp.set([TEZ_IDENTIFIER]),
             security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
             dao_address=Addresses.DAO,
             stablecoin_address=stablecoin.address,
