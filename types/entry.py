@@ -1,8 +1,5 @@
 import smartpy as sp
 
-# Type of contributions: token identifier bytes => List of contribution values
-CONTRIBUTION_TYPE = sp.TMap(sp.TBytes, sp.TList(sp.TNat))
-
 # Type of a matching round entry
 # Params:
 #   address           : The payout address of the entry, where donations and match amount is sent
@@ -16,8 +13,6 @@ ENTRY_TYPE = sp.TRecord(
     address=sp.TAddress,
     creator=sp.TAddress,
     status=sp.TNat,
-    contributions=CONTRIBUTION_TYPE,
-    contributors=sp.TSet(sp.TAddress),
     clr_match=sp.TNat,
     deposit_withdrawn=sp.TBool,
 ).layout(
@@ -28,14 +23,8 @@ ENTRY_TYPE = sp.TRecord(
             (
                 "status",
                 (
-                    "contributions",
-                    (
-                        "contributors",
-                        (
-                            "clr_match",
-                            "deposit_withdrawn",
-                        ),
-                    ),
+                    "clr_match",
+                    "deposit_withdrawn",
                 ),
             ),
         ),

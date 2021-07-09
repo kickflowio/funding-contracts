@@ -68,6 +68,11 @@ class MatchingRound(sp.Contract):
             tkey=sp.TNat,
             tvalue=Entry.ENTRY_TYPE,
         ),
+        contributions=sp.big_map(
+            l = {},
+            tkey=sp.TPair(sp.TAddress, sp.TNat),
+            tvalue=sp.TRecord(token_identifier=sp.TBytes, value=sp.TNat)
+        ),
         entry_address_to_id=sp.big_map(
             l={},
             tkey=sp.TAddress,
@@ -86,6 +91,7 @@ class MatchingRound(sp.Contract):
                 round_event_timestamps=Round.ROUND_EVENT_TIMESTAMPS_TYPE,
                 round_meta=Round.ROUND_META_TYPE,
                 entries=sp.TBigMap(sp.TNat, Entry.ENTRY_TYPE),
+                contributions=sp.TBigMap(sp.TPair(sp.TAddress, sp.TNat), sp.TRecord(token_identifier=sp.TBytes, value=sp.TNat)),
                 entry_address_to_id=sp.TBigMap(sp.TAddress, sp.TNat),
                 sponsors=sp.TMap(sp.TAddress, sp.TNat),
                 total_sponsored_amount=sp.TNat,
@@ -98,6 +104,7 @@ class MatchingRound(sp.Contract):
             round_event_timestamps=round_event_timestamps,
             round_meta=round_meta,
             entries=entries,
+            contributions=contributions,
             entry_address_to_id=entry_address_to_id,
             sponsors=sponsors,
             total_sponsored_amount=total_sponsored_amount,
@@ -158,8 +165,6 @@ class MatchingRound(sp.Contract):
             address=address,
             creator=sp.sender,
             status=Entry.ENTRY_STATUS_ACTIVE,
-            contributions={},
-            contributors=sp.set([]),
             clr_match=0,
             deposit_withdrawn=False,
         )
@@ -206,7 +211,7 @@ class MatchingRound(sp.Contract):
         sp.verify(entry.status == Entry.ENTRY_STATUS_ACTIVE, Errors.ENTRY_NOT_ACTIVE)
 
         # Verify that the contributor has not contributed already
-        sp.verify(~entry.contributors.contains(params.from_), Errors.ALREADY_CONTRIBUTED)
+        sp.verify(~self.data.contributions.contains((params.from_, entry_id)), Errors.ALREADY_CONTRIBUTED)
 
         # Verify that it is not a self contribution
         sp.verify(
@@ -220,11 +225,8 @@ class MatchingRound(sp.Contract):
             Errors.INVALID_TOKEN_IDENTIFIER,
         )
 
-        # Insert contribution into the entry
-        sp.if ~entry.contributions.contains(params.token_identifier):
-            entry.contributions[params.token_identifier] = []
-        entry.contributions[params.token_identifier].push(params.value)
-        entry.contributors.add(params.from_)
+        # Insert contribution into the contributions BIGMAP
+        self.data.contributions[(params.from_, entry_id)] = sp.record(token_identifier = params.token_identifier, value = params.value)
 
     # Allows disqualification of entries through the DAO, from the beginning of the round until
     # the end of the cooldown period. 
@@ -496,8 +498,6 @@ if __name__ == "__main__":
         scenario.verify(entry_1.address == Addresses.ENTRY_1)
         scenario.verify(entry_1.creator == Addresses.JOHN)
         scenario.verify(entry_1.status == Entry.ENTRY_STATUS_ACTIVE)
-        scenario.verify(sp.len(entry_1.contributions) == 0)
-        scenario.verify(sp.len(entry_1.contributors.elements()) == 0)
         scenario.verify(entry_1.clr_match == 0)
         scenario.verify(entry_1.deposit_withdrawn == False)
 
@@ -505,8 +505,6 @@ if __name__ == "__main__":
         scenario.verify(entry_2.address == Addresses.ENTRY_2)
         scenario.verify(entry_2.creator == Addresses.BOB)
         scenario.verify(entry_2.status == Entry.ENTRY_STATUS_ACTIVE)
-        scenario.verify(sp.len(entry_2.contributions) == 0)
-        scenario.verify(sp.len(entry_2.contributors.elements()) == 0)
         scenario.verify(entry_2.clr_match == 0)
         scenario.verify(entry_2.deposit_withdrawn == False)
 
@@ -567,8 +565,6 @@ if __name__ == "__main__":
         address=Addresses.ENTRY_1,
         creator=Addresses.JOHN,
         status=Entry.ENTRY_STATUS_ACTIVE,
-        contributions={},
-        contributors=sp.set([]),
         clr_match=0,
         deposit_withdrawn=False,
     )
@@ -608,17 +604,15 @@ if __name__ == "__main__":
 
         entry = matching_round.data.entries[1]
 
-        # Verify the number of contributors
-        scenario.verify(sp.len(entry.contributors.elements()) == 2)
-        scenario.verify(sp.len(entry.contributions[TEZ_IDENTIFIER]) == 2)
-
-        # Verify that correct contributors are recorded
-        scenario.verify(entry.contributors.contains(Addresses.ALICE))
-        scenario.verify(entry.contributors.contains(Addresses.BOB))
-
-        # Verify the correctness of the contributions
-        l = entry.contributions[TEZ_IDENTIFIER]
-        scenario.verify_equal(l, [200, 100])
+        # Verify that contributions are recorded and are correct
+        scenario.verify(matching_round.data.contributions.contains((Addresses.ALICE, 1)))
+        scenario.verify(matching_round.data.contributions.contains((Addresses.BOB, 1)))
+        scenario.verify(matching_round.data.contributions[(Addresses.ALICE, 1)] == sp.record(
+            token_identifier = TEZ_IDENTIFIER, value = 100
+        ))
+        scenario.verify(matching_round.data.contributions[(Addresses.BOB, 1)] == sp.record(
+            token_identifier = TEZ_IDENTIFIER, value = 200
+        ))
 
     @sp.add_test(name="contribute fails if the sender is not donation_handler")
     def test():
@@ -713,8 +707,6 @@ if __name__ == "__main__":
             address=Addresses.ENTRY_1,
             creator=Addresses.JOHN,
             status=Entry.ENTRY_STATUS_DISQUALIFIED,
-            contributions={},
-            contributors=sp.set([]),
             clr_match=0,
             deposit_withdrawn=False,
         )
@@ -747,14 +739,13 @@ if __name__ == "__main__":
             address=Addresses.ENTRY_1,
             creator=Addresses.JOHN,
             status=Entry.ENTRY_STATUS_ACTIVE,
-            contributions={},
-            contributors=sp.set([Addresses.ALICE]),
             clr_match=0,
             deposit_withdrawn=False,
         )
 
         matching_round = MatchingRound(
             entries=sp.big_map(l={1: entry}),
+            contributions=sp.big_map(l={ (Addresses.ALICE, 1): sp.record(token_identifier = TEZ_IDENTIFIER, value = 10) }),
             entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 
@@ -848,8 +839,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -857,8 +846,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_2,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -866,8 +853,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_3,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -918,8 +903,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -927,8 +910,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_2,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -936,8 +917,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_3,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1027,8 +1006,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1036,8 +1013,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_2,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_DISQUALIFIED,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1045,8 +1020,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_3,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1079,8 +1052,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1088,8 +1059,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_2,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1097,8 +1066,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_3,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1141,8 +1108,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1150,8 +1115,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_2,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1159,8 +1122,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_3,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1275,8 +1236,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=1000,
                     deposit_withdrawn=False,
                 ),
@@ -1284,8 +1243,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_2,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=2000,
                     deposit_withdrawn=False,
                 ),
@@ -1293,8 +1250,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_3,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=3000,
                     deposit_withdrawn=False,
                 ),
@@ -1380,8 +1335,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_DISQUALIFIED,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1416,8 +1369,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=1000,
                     deposit_withdrawn=False,
                 ),
@@ -1460,8 +1411,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=1000,
                     deposit_withdrawn=False,
                 ),
@@ -1505,8 +1454,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1556,8 +1503,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_1,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1565,8 +1510,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_2,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_CLOSED,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1574,8 +1517,6 @@ if __name__ == "__main__":
                     address=Addresses.ENTRY_3,
                     creator=Addresses.JOHN,
                     status=Entry.ENTRY_STATUS_ACTIVE,
-                    contributions={},
-                    contributors=sp.set([]),
                     clr_match=0,
                     deposit_withdrawn=False,
                 ),
@@ -1640,8 +1581,6 @@ if __name__ == "__main__":
             address=Addresses.ENTRY_1,
             creator=Addresses.JOHN,
             status=Entry.ENTRY_STATUS_DISQUALIFIED,
-            contributions={},
-            contributors=sp.set([]),
             clr_match=0,
             deposit_withdrawn=False,
         )
@@ -1688,8 +1627,6 @@ if __name__ == "__main__":
             address=Addresses.ENTRY_1,
             creator=Addresses.JOHN,
             status=Entry.ENTRY_STATUS_ACTIVE,
-            contributions={},
-            contributors=sp.set([]),
             clr_match=0,
             deposit_withdrawn=True,
         )
