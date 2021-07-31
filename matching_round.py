@@ -69,9 +69,11 @@ class MatchingRound(sp.Contract):
             tvalue=Entry.ENTRY_TYPE,
         ),
         contributions=sp.big_map(
-            l = {},
+            l={},
             tkey=sp.TPair(sp.TAddress, sp.TNat),
-            tvalue=sp.TRecord(token_identifier=sp.TBytes, value=sp.TNat)
+            tvalue=sp.TRecord(token_identifier=sp.TBytes, value=sp.TNat).layout(
+                ("token_identifier", "value")
+            ),
         ),
         entry_address_to_id=sp.big_map(
             l={},
@@ -91,7 +93,12 @@ class MatchingRound(sp.Contract):
                 round_event_timestamps=Round.ROUND_EVENT_TIMESTAMPS_TYPE,
                 round_meta=Round.ROUND_META_TYPE,
                 entries=sp.TBigMap(sp.TNat, Entry.ENTRY_TYPE),
-                contributions=sp.TBigMap(sp.TPair(sp.TAddress, sp.TNat), sp.TRecord(token_identifier=sp.TBytes, value=sp.TNat)),
+                contributions=sp.TBigMap(
+                    sp.TPair(sp.TAddress, sp.TNat),
+                    sp.TRecord(token_identifier=sp.TBytes, value=sp.TNat).layout(
+                        ("token_identifier", "value")
+                    ),
+                ),
                 entry_address_to_id=sp.TBigMap(sp.TAddress, sp.TNat),
                 sponsors=sp.TMap(sp.TAddress, sp.TNat),
                 total_sponsored_amount=sp.TNat,
@@ -184,6 +191,14 @@ class MatchingRound(sp.Contract):
                 entry_address=sp.TAddress,
                 token_identifier=sp.TBytes,
                 value=sp.TNat,
+            ).layout(
+                (
+                    "from_",
+                    (
+                        "entry_address",
+                        ("token_identifier", "value"),
+                    ),
+                ),
             ),
         )
 
@@ -211,7 +226,9 @@ class MatchingRound(sp.Contract):
         sp.verify(entry.status == Entry.ENTRY_STATUS_ACTIVE, Errors.ENTRY_NOT_ACTIVE)
 
         # Verify that the contributor has not contributed already
-        sp.verify(~self.data.contributions.contains((params.from_, entry_id)), Errors.ALREADY_CONTRIBUTED)
+        sp.verify(
+            ~self.data.contributions.contains((params.from_, entry_id)), Errors.ALREADY_CONTRIBUTED
+        )
 
         # Verify that it is not a self contribution
         sp.verify(
@@ -226,10 +243,12 @@ class MatchingRound(sp.Contract):
         )
 
         # Insert contribution into the contributions BIGMAP
-        self.data.contributions[(params.from_, entry_id)] = sp.record(token_identifier = params.token_identifier, value = params.value)
+        self.data.contributions[(params.from_, entry_id)] = sp.record(
+            token_identifier=params.token_identifier, value=params.value
+        )
 
     # Allows disqualification of entries through the DAO, from the beginning of the round until
-    # the end of the cooldown period. 
+    # the end of the cooldown period.
     @sp.entry_point
     def disqualify_entries(self, entry_list):
         sp.set_type(entry_list, sp.TList(sp.TNat))
@@ -607,12 +626,14 @@ if __name__ == "__main__":
         # Verify that contributions are recorded and are correct
         scenario.verify(matching_round.data.contributions.contains((Addresses.ALICE, 1)))
         scenario.verify(matching_round.data.contributions.contains((Addresses.BOB, 1)))
-        scenario.verify(matching_round.data.contributions[(Addresses.ALICE, 1)] == sp.record(
-            token_identifier = TEZ_IDENTIFIER, value = 100
-        ))
-        scenario.verify(matching_round.data.contributions[(Addresses.BOB, 1)] == sp.record(
-            token_identifier = TEZ_IDENTIFIER, value = 200
-        ))
+        scenario.verify(
+            matching_round.data.contributions[(Addresses.ALICE, 1)]
+            == sp.record(token_identifier=TEZ_IDENTIFIER, value=100)
+        )
+        scenario.verify(
+            matching_round.data.contributions[(Addresses.BOB, 1)]
+            == sp.record(token_identifier=TEZ_IDENTIFIER, value=200)
+        )
 
     @sp.add_test(name="contribute fails if the sender is not donation_handler")
     def test():
@@ -745,7 +766,9 @@ if __name__ == "__main__":
 
         matching_round = MatchingRound(
             entries=sp.big_map(l={1: entry}),
-            contributions=sp.big_map(l={ (Addresses.ALICE, 1): sp.record(token_identifier = TEZ_IDENTIFIER, value = 10) }),
+            contributions=sp.big_map(
+                l={(Addresses.ALICE, 1): sp.record(token_identifier=TEZ_IDENTIFIER, value=10)}
+            ),
             entry_address_to_id=sp.big_map(l={Addresses.ENTRY_1: 1}),
         )
 

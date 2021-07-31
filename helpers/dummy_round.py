@@ -18,6 +18,14 @@ class DummyRound(sp.Contract):
                 entry_address=sp.TAddress,
                 token_identifier=sp.TBytes,
                 value=sp.TNat,
+            ).layout(
+                (
+                    "from_",
+                    (
+                        "entry_address",
+                        ("token_identifier", "value"),
+                    ),
+                ),
             ),
         )
         pass

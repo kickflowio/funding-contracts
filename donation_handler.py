@@ -29,9 +29,14 @@ class DonationHandler(sp.Contract):
         sp.set_type(
             params,
             sp.TRecord(
-                token_identifier=sp.TBytes,
                 entry_address=sp.TAddress,
+                token_identifier=sp.TBytes,
                 value=sp.TNat,
+            ).layout(
+                (
+                    "entry_address",
+                    ("token_identifier", "value"),
+                ),
             ),
         )
 
@@ -52,6 +57,14 @@ class DonationHandler(sp.Contract):
                 entry_address=sp.TAddress,
                 token_identifier=sp.TBytes,
                 value=sp.TNat,
+            ).layout(
+                (
+                    "from_",
+                    (
+                        "entry_address",
+                        ("token_identifier", "value"),
+                    ),
+                ),
             ),
             self.data.round_address.open_some(),
             "contribute",
