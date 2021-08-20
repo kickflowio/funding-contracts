@@ -47,7 +47,6 @@ ROUND_EVENT_TIMESTAMPS = sp.record(
 ROUND_META = sp.record(
     token_set=sp.set([TEZ_IDENTIFIER]),
     security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
-    dao_address=Addresses.DAO,
     stablecoin_address=Addresses.STABLECOIN,
     donation_handler_address=Addresses.DONATION_HANDLER,
     community_fund_address=Addresses.COMMUNITY_FUND,
@@ -61,6 +60,7 @@ ROUND_META = sp.record(
 class MatchingRound(sp.Contract):
     def __init__(
         self,
+        admin=Addresses.DAO,
         round_event_timestamps=ROUND_EVENT_TIMESTAMPS,
         round_meta=ROUND_META,
         entries=sp.big_map(
@@ -90,6 +90,7 @@ class MatchingRound(sp.Contract):
     ):
         self.init_type(
             sp.TRecord(
+                admin=sp.TAddress,
                 round_event_timestamps=Round.ROUND_EVENT_TIMESTAMPS_TYPE,
                 round_meta=Round.ROUND_META_TYPE,
                 entries=sp.TBigMap(sp.TNat, Entry.ENTRY_TYPE),
@@ -108,6 +109,7 @@ class MatchingRound(sp.Contract):
         )
 
         self.init(
+            admin=admin,
             round_event_timestamps=round_event_timestamps,
             round_meta=round_meta,
             entries=entries,
@@ -135,7 +137,7 @@ class MatchingRound(sp.Contract):
             Errors.NOT_ACCEPTING_SPONSORS,
         )
 
-        # Retrieve sponsored amount in mentioned stablecoin
+        # Retrieve sponsored amount from sender's address (in the mentioned stablecoin)
         c = sp.contract(
             sp.TRecord(from_=sp.TAddress, to_=sp.TAddress, value=sp.TNat).layout(
                 ("from_ as from", ("to_ as to", "value"))
@@ -149,12 +151,11 @@ class MatchingRound(sp.Contract):
         self.data.sponsors[sp.sender] = value
         self.data.total_sponsored_amount += value
 
-    # Allows entry to the round up to the contribution start timestamp.
     @sp.entry_point
     def enter_round(self, address):
         sp.set_type(address, sp.TAddress)
 
-        # Verify that entry is not in the round already
+        # Verify that entry is not already in the round
         sp.verify(~self.data.entry_address_to_id.contains(address), Errors.ALREADY_IN_ROUND)
 
         # Verify that timing is correct
@@ -181,7 +182,6 @@ class MatchingRound(sp.Contract):
         self.data.entries[self.data.uuid] = entry
         self.data.entry_address_to_id[address] = self.data.uuid
 
-    # Called by the donation handler contract to record the contribution value
     @sp.entry_point
     def contribute(self, params):
         sp.set_type(
@@ -247,14 +247,12 @@ class MatchingRound(sp.Contract):
             token_identifier=params.token_identifier, value=params.value
         )
 
-    # Allows disqualification of entries through the DAO, from the beginning of the round until
-    # the end of the cooldown period.
     @sp.entry_point
     def disqualify_entries(self, entry_list):
         sp.set_type(entry_list, sp.TList(sp.TNat))
 
-        # Verify that the sender is the DAO
-        sp.verify(sp.sender == self.data.round_meta.dao_address, Errors.NOT_ALLOWED)
+        # Verify that the sender is the admin
+        sp.verify(sp.sender == self.data.admin, Errors.NOT_ALLOWED)
 
         # Verify that the timing is correct
         sp.verify(
@@ -276,13 +274,13 @@ class MatchingRound(sp.Contract):
             sp.utils.nat_to_mutez(security_deposit_nat * sp.len(entry_list)),
         )
 
-    # Allows DAO to set the matches for the entries once the cooldown period is over
+    # Allows admin to set the matches for the entries once the cooldown period is over
     @sp.entry_point
     def set_clr_matches(self, matches_map):
         sp.set_type(matches_map, sp.TMap(sp.TNat, sp.TNat))
 
-        # Verify that sender is the DAO
-        sp.verify(sp.sender == self.data.round_meta.dao_address, Errors.NOT_ALLOWED)
+        # Verify that sender is the admin
+        sp.verify(sp.sender == self.data.admin, Errors.NOT_ALLOWED)
 
         sp.verify(
             sp.now > self.data.round_event_timestamps.cooldown_period_end, Errors.COOLDOWN_NOT_OVER
@@ -305,7 +303,6 @@ class MatchingRound(sp.Contract):
         sp.for entry_id in matches_map.keys():
             self.data.entries[entry_id].clr_match = matches_map[entry_id]
 
-    # Allows entry to withdraw their match, once the challenge period is over
     @sp.entry_point
     def withdraw_match(self, address):
         sp.set_type(address, sp.TAddress)
@@ -353,7 +350,6 @@ class MatchingRound(sp.Contract):
         # Set entry status to closed
         entry.status = Entry.ENTRY_STATUS_CLOSED
 
-    # Allows non-disqualified entries to withdraw their security deposit after the cooldown period
     @sp.entry_point
     def withdraw_deposit(self, address):
         sp.set_type(address, sp.TAddress)
@@ -400,7 +396,6 @@ if __name__ == "__main__":
         round_meta = sp.record(
             token_set=sp.set([TEZ_IDENTIFIER]),
             security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
-            dao_address=Addresses.DAO,
             stablecoin_address=stablecoin.address,
             donation_handler_address=Addresses.DONATION_HANDLER,
             community_fund_address=Addresses.COMMUNITY_FUND,
@@ -888,7 +883,6 @@ if __name__ == "__main__":
         round_meta = sp.record(
             token_set=sp.set([TEZ_IDENTIFIER]),
             security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
-            dao_address=Addresses.DAO,
             stablecoin_address=Addresses.STABLECOIN,
             donation_handler_address=Addresses.DONATION_HANDLER,
             community_fund_address=community_fund.address,
@@ -952,7 +946,6 @@ if __name__ == "__main__":
         round_meta = sp.record(
             token_set=sp.set([TEZ_IDENTIFIER]),
             security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
-            dao_address=Addresses.DAO,
             stablecoin_address=Addresses.STABLECOIN,
             donation_handler_address=Addresses.DONATION_HANDLER,
             community_fund_address=community_fund.address,
@@ -981,7 +974,7 @@ if __name__ == "__main__":
         scenario.verify(matching_round.balance == sp.utils.nat_to_mutez(security_deposit_nat * 1))
         scenario.verify(community_fund.balance == sp.utils.nat_to_mutez(security_deposit_nat * 2))
 
-    @sp.add_test(name="disqualify_entries fail if sender is not the DAO")
+    @sp.add_test(name="disqualify_entries fails if sender is not the admin")
     def test():
         scenario = sp.test_scenario()
 
@@ -1105,7 +1098,7 @@ if __name__ == "__main__":
             now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + 1),
         )
 
-        # verify if matches_set is set to True
+        # Verify that matches_set is True
         scenario.verify(matching_round.data.matches_set)
 
         # Verify that the set matches are correct
@@ -1182,7 +1175,7 @@ if __name__ == "__main__":
             )
         )
 
-    @sp.add_test(name="set_clr_matches fails if sender is not the DAO")
+    @sp.add_test(name="set_clr_matches fails if sender is not the admin")
     def test():
         scenario = sp.test_scenario()
 
@@ -1201,7 +1194,7 @@ if __name__ == "__main__":
             exception=Errors.NOT_ALLOWED,
         )
 
-    @sp.add_test(name="set_clr_matches fail if timing is incorrect")
+    @sp.add_test(name="set_clr_matches fails if timing is incorrect")
     def test():
         scenario = sp.test_scenario()
 
@@ -1226,7 +1219,7 @@ if __name__ == "__main__":
             now=CONTRIBUTION_START.add_seconds(CONTRIBUTION_PERIOD + COOLDOWN_PERIOD + 1),
         )
 
-        # Verify if the match is set, and challenge period updated
+        # Verify that the match is set, and challenge period updated
         scenario.verify(matching_round.data.entries[1].clr_match == 4000)
         scenario.verify(
             matching_round.data.round_event_timestamps.challenge_period_end
@@ -1288,7 +1281,6 @@ if __name__ == "__main__":
         round_meta = sp.record(
             token_set=sp.set([TEZ_IDENTIFIER]),
             security_deposit_amount=SECURITY_DEPOSIT_AMOUNT,
-            dao_address=Addresses.DAO,
             stablecoin_address=stablecoin.address,
             donation_handler_address=Addresses.DONATION_HANDLER,
             community_fund_address=Addresses.COMMUNITY_FUND,

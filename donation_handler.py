@@ -15,15 +15,14 @@ class DonationHandler(sp.Contract):
         self,
         round_address=sp.none,
         whitelist_address=Addresses.WHITELIST,
-        dao_address=Addresses.DAO,
+        admin=Addresses.DAO,
     ):
         self.init(
             round_address=round_address,
             whitelist_address=whitelist_address,
-            dao_address=dao_address,
+            admin=admin,
         )
 
-    # Relays the donation to the entry's address can calls the 'contribute' entrypoint of Round contract
     @sp.entry_point
     def donate(self, params):
         sp.set_type(
@@ -40,17 +39,17 @@ class DonationHandler(sp.Contract):
             ),
         )
 
-        # Verify if round is active
+        # Verify that a matching-round is active
         sp.verify(self.data.round_address.is_some(), Errors.NO_ROUND_IS_ACTIVE)
 
-        # Verify if sender is whitelisted
+        # Verify that the sender is whitelisted
         c = sp.contract(sp.TAddress, self.data.whitelist_address, "verify_whitelisted").open_some()
         sp.transfer(sp.sender, sp.tez(0), c)
 
-        # Verify if donation value is more then zero
+        # Verify that the donation value is more than zero
         sp.verify(params.value > 0, Errors.ZERO_DONATION_NOT_ALLOWED)
 
-        # Create contract instance for round contract, to call contribute entry point
+        # Create contract instance for matching-round contract, to call contribute entry point
         cr = sp.contract(
             sp.TRecord(
                 from_=sp.TAddress,
@@ -75,10 +74,10 @@ class DonationHandler(sp.Contract):
             # Get Nat value of sent amount
             tez_val = sp.utils.mutez_to_nat(sp.amount)
 
-            # Verify if parameter value is same as send amount
+            # Verify that parameter value is same as send amount
             sp.verify(params.value == tez_val, Errors.INCORRECT_VALUE_PARAMETER)
 
-            # Store contribution in the round contract
+            # Store contribution in the matching-round contract
             sp.transfer(
                 sp.record(
                     from_=sp.sender,
@@ -94,7 +93,7 @@ class DonationHandler(sp.Contract):
             sp.send(params.entry_address, sp.amount)
         # Any other FA1.2 compliant token
         sp.else:
-            # Store contribution in the round contract
+            # Store contribution in the matching-round contract
             sp.transfer(
                 sp.record(
                     from_=sp.sender,
@@ -132,8 +131,8 @@ class DonationHandler(sp.Contract):
     def set_round_address(self, address):
         sp.set_type(address, sp.TOption(sp.TAddress))
 
-        # Ony DAO can change this
-        sp.verify(sp.sender == self.data.dao_address, Errors.ONLY_DAO_ALLOWED)
+        # Only admin can change this
+        sp.verify(sp.sender == self.data.admin, Errors.NOT_ALLOWED)
 
         self.data.round_address = address
 
@@ -141,8 +140,8 @@ class DonationHandler(sp.Contract):
     def set_whitelist_address(self, address):
         sp.set_type(address, sp.TAddress)
 
-        # Ony DAO can change this
-        sp.verify(sp.sender == self.data.dao_address, Errors.ONLY_DAO_ALLOWED)
+        # Only admin can change this
+        sp.verify(sp.sender == self.data.admin, Errors.NOT_ALLOWED)
 
         self.data.whitelist_address = address
 
@@ -214,7 +213,7 @@ if __name__ == "__main__":
         scenario.verify(token.data.balances[Addresses.ALICE].balance == 20)
         scenario.verify(token.data.balances[Addresses.ENTRY_1].balance == 80)
 
-    @sp.add_test(name="donate fails if no round is active")
+    @sp.add_test(name="donate fails if no matching round is active")
     def test():
         scenario = sp.test_scenario()
 
@@ -333,13 +332,13 @@ if __name__ == "__main__":
             sender=Addresses.DAO
         )
 
-        # Verify if round address is set
+        # Verify that round address is set
         scenario.verify(donation_handler.data.round_address.open_some() == Addresses.ROUND)
 
         # Set round address to none
         scenario += donation_handler.set_round_address(sp.none).run(sender=Addresses.DAO)
 
-        # Verify if round address is none
+        # Verify that round address is none
         scenario.verify(~donation_handler.data.round_address.is_some())
 
     @sp.add_test(name="set_round_address fails if sender is not DAO")
@@ -354,7 +353,7 @@ if __name__ == "__main__":
             sender=Addresses.ALICE, valid=False
         )
 
-        # Verify if round address is none
+        # Verify that round address is none
         scenario.verify(~donation_handler.data.round_address.is_some())
 
     #######################
@@ -373,7 +372,7 @@ if __name__ == "__main__":
             sender=Addresses.DAO
         )
 
-        # Verify if whitelist address is set
+        # Verify that whitelist address is set
         scenario.verify(donation_handler.data.whitelist_address == Addresses.RANDOM)
 
     @sp.add_test(name="set_whitelist_address fails if sender is not DAO")
@@ -389,7 +388,7 @@ if __name__ == "__main__":
             sender=Addresses.ALICE, valid=False
         )
 
-        # Verify if whitelist address is unchanged
+        # Verify that whitelist address is unchanged
         scenario.verify(donation_handler.data.whitelist_address == Addresses.WHITELIST)
 
 

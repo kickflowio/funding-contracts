@@ -25,7 +25,7 @@ The funding contracts are written in SmartPy. To know more, view SmartPy's [docu
 - `matching_round.py` : Handles the entire funding round - sponsor collection, contributions & match withdrawals.
 - `whitelist.py` : Handles the address whitelisting logic of Kickflow.
 
-View the smart contract [docs](https://github.com/kickflowio/funding-contracts/tree/master/docs) for more context.
+View the contract storage and entrypoint descriptions [here](https://github.com/kickflowio/funding-contracts/tree/master/docs). For more context view our [docs](https://kickflow.gitbook.io/kickflow-documentation/)
 
 ### Folders
 

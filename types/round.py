@@ -31,7 +31,6 @@ ROUND_EVENT_TIMESTAMPS_TYPE = sp.TRecord(
 #   token_set                 : A set of BYTES type holding packed values of the addresses of tokens
 #                               being accepted in a round.
 #   security_deposit_amount   : Mandatory security deposit to be given by the entries in tez.
-#   dao_address               : Address of the DAO
 #   stablecoin_address        : Address of the stablecoin in which sponsored amount is accepted.
 #   donation_handler_address  : Address of the donation handler contract that relays donations.
 #   community_fund_address    : Address of the community fund managed by the DAO.
@@ -40,7 +39,6 @@ ROUND_EVENT_TIMESTAMPS_TYPE = sp.TRecord(
 ROUND_META_TYPE = sp.TRecord(
     token_set=sp.TSet(sp.TBytes),
     security_deposit_amount=sp.TMutez,
-    dao_address=sp.TAddress,
     stablecoin_address=sp.TAddress,
     donation_handler_address=sp.TAddress,
     community_fund_address=sp.TAddress,
@@ -50,13 +48,10 @@ ROUND_META_TYPE = sp.TRecord(
         (
             "security_deposit_amount",
             (
-                "dao_address",
+                "stablecoin_address",
                 (
-                    "stablecoin_address",
-                    (
-                        "donation_handler_address",
-                        "community_fund_address",
-                    ),
+                    "donation_handler_address",
+                    "community_fund_address",
                 ),
             ),
         ),
