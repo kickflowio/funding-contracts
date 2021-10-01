@@ -19,14 +19,14 @@ code
           {
             DROP;       # @parameter%donate : @storage
           }; # @parameter%donate : @storage
-        # sp.transfer(sp.sender, sp.tez(0), sp.contract(sp.TAddress, self.data.whitelist_address, entry_point='verify_whitelisted').open_some()) # @parameter%donate : @storage
+        # sp.transfer(sp.sender, sp.tez(0), sp.contract(sp.TAddress, self.data.whitelist_address, entry_point='verify_whitelisted').open_some(message = 'INVALID_WHITELIST')) # @parameter%donate : @storage
         NIL operation; # list operation : @parameter%donate : @storage
         DUP 3;      # @storage : list operation : @parameter%donate : @storage
         GET 4;      # address : list operation : @parameter%donate : @storage
         CONTRACT %verify_whitelisted address; # option (contract address) : list operation : @parameter%donate : @storage
         IF_NONE
           {
-            PUSH int 46; # int : list operation : @parameter%donate : @storage
+            PUSH string "INVALID_WHITELIST"; # string : list operation : @parameter%donate : @storage
             FAILWITH;   # FAILED
           }
           {}; # @some : list operation : @parameter%donate : @storage
@@ -82,14 +82,14 @@ code
             GET 3;      # option address : list operation : list operation : @parameter%donate : @storage
             IF_NONE
               {
-                PUSH int 68; # int : list operation : list operation : @parameter%donate : @storage
+                PUSH int 70; # int : list operation : list operation : @parameter%donate : @storage
                 FAILWITH;   # FAILED
               }
               {}; # @some : list operation : list operation : @parameter%donate : @storage
             CONTRACT %contribute (pair address (pair address (pair bytes nat))); # option (contract (pair address (pair address (pair bytes nat)))) : list operation : list operation : @parameter%donate : @storage
             IF_NONE
               {
-                PUSH int 53; # int : list operation : list operation : @parameter%donate : @storage
+                PUSH int 55; # int : list operation : list operation : @parameter%donate : @storage
                 FAILWITH;   # FAILED
               }
               {}; # @some : list operation : list operation : @parameter%donate : @storage
@@ -123,7 +123,7 @@ code
             CONTRACT unit; # option (contract unit) : list operation : @storage
             IF_NONE
               {
-                PUSH int 93; # int : list operation : @storage
+                PUSH int 95; # int : list operation : @storage
                 FAILWITH;   # FAILED
               }
               {}; # @some : list operation : @storage
@@ -139,14 +139,14 @@ code
             GET 3;      # option address : list operation : list operation : @parameter%donate : @storage
             IF_NONE
               {
-                PUSH int 68; # int : list operation : list operation : @parameter%donate : @storage
+                PUSH int 70; # int : list operation : list operation : @parameter%donate : @storage
                 FAILWITH;   # FAILED
               }
               {}; # @some : list operation : list operation : @parameter%donate : @storage
             CONTRACT %contribute (pair address (pair address (pair bytes nat))); # option (contract (pair address (pair address (pair bytes nat)))) : list operation : list operation : @parameter%donate : @storage
             IF_NONE
               {
-                PUSH int 53; # int : list operation : list operation : @parameter%donate : @storage
+                PUSH int 55; # int : list operation : list operation : @parameter%donate : @storage
                 FAILWITH;   # FAILED
               }
               {}; # @some : list operation : list operation : @parameter%donate : @storage
@@ -168,21 +168,21 @@ code
             TRANSFER_TOKENS; # operation : list operation : @parameter%donate : @storage
             CONS;       # list operation : @parameter%donate : @storage
             SWAP;       # @parameter%donate : list operation : @storage
-            # sp.transfer(sp.record(from_ = sp.sender, to_ = params.entry_address, value = params.value), sp.tez(0), sp.contract(sp.TRecord(from_ = sp.TAddress, to_ = sp.TAddress, value = sp.TNat).layout(("from_ as from", ("to_ as to", "value"))), sp.unpack(params.token_identifier, sp.TAddress).open_some(), entry_point='transfer').open_some()) # @parameter%donate : list operation : @storage
+            # sp.transfer(sp.record(from_ = sp.sender, to_ = params.entry_address, value = params.value), sp.tez(0), sp.contract(sp.TRecord(from_ = sp.TAddress, to_ = sp.TAddress, value = sp.TNat).layout(("from_ as from", ("to_ as to", "value"))), sp.unpack(params.token_identifier, sp.TAddress).open_some(message = 'INVALID_IDENTIFIER_BYTES'), entry_point='transfer').open_some()) # @parameter%donate : list operation : @storage
             DUP;        # @parameter%donate : @parameter%donate : list operation : @storage
             DUG 2;      # @parameter%donate : list operation : @parameter%donate : @storage
             GET 3;      # bytes : list operation : @parameter%donate : @storage
             UNPACK address; # option address : list operation : @parameter%donate : @storage
             IF_NONE
               {
-                PUSH int 109; # int : list operation : @parameter%donate : @storage
+                PUSH string "INVALID_IDENTIFIER_BYTES"; # string : list operation : @parameter%donate : @storage
                 FAILWITH;   # FAILED
               }
               {}; # @some : list operation : @parameter%donate : @storage
             CONTRACT %transfer (pair address (pair address nat)); # option (contract (pair address (pair address nat))) : list operation : @parameter%donate : @storage
             IF_NONE
               {
-                PUSH int 112; # int : list operation : @parameter%donate : @storage
+                PUSH int 116; # int : list operation : @parameter%donate : @storage
                 FAILWITH;   # FAILED
               }
               {}; # @some : list operation : @parameter%donate : @storage

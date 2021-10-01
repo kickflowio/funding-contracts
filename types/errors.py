@@ -15,6 +15,12 @@ NOT_ALLOWED = "NOT_ALLOWED"
 # Round is not active right now
 NO_ROUND_IS_ACTIVE = "NO_ROUND_IS_ACTIVE"
 
+# The token identifier bytes do not resolve to a valid address
+INVALID_IDENTIFIER_BYTES = "INVALID_IDENTIFIER_BYTES"
+
+# The whitelist contract address is invalid
+INVALID_WHITELIST = "INVALID_WHITELIST"
+
 # Incorrect value parameter in donate
 INCORRECT_VALUE_PARAMETER = "INCORRECT_VALUE_PARAMETER"
 
@@ -42,6 +48,9 @@ ENTRY_PERIOD_OVER = "ENTRY_PERIOD_OVER"
 
 # Invalid security deposit amount
 INVALID_SECURITY_DEPOSIT = "INVALID_SECURITY_DEPOSIT"
+
+# provided stablecoin address is invalid
+INVALID_STABLECOIN = "INVALID_STABLECOIN"
 
 # The entry address provided is not in the round
 INVALID_ENTRY_ADDRESS = "INVALID_ENTRY_ADDRESS"

@@ -43,7 +43,9 @@ class DonationHandler(sp.Contract):
         sp.verify(self.data.round_address.is_some(), Errors.NO_ROUND_IS_ACTIVE)
 
         # Verify that the sender is whitelisted
-        c = sp.contract(sp.TAddress, self.data.whitelist_address, "verify_whitelisted").open_some()
+        c = sp.contract(sp.TAddress, self.data.whitelist_address, "verify_whitelisted").open_some(
+            Errors.INVALID_WHITELIST
+        )
         sp.transfer(sp.sender, sp.tez(0), c)
 
         # Verify that the donation value is more than zero
@@ -106,7 +108,9 @@ class DonationHandler(sp.Contract):
             )
 
             # Get token address from token_identifier bytes
-            token_address = sp.unpack(params.token_identifier, t=sp.TAddress).open_some()
+            token_address = sp.unpack(params.token_identifier, t=sp.TAddress).open_some(
+                Errors.INVALID_IDENTIFIER_BYTES
+            )
 
             # Send donation to the entry
             ct = sp.contract(

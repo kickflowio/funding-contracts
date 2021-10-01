@@ -692,7 +692,7 @@ code
                     PUSH string "NOT_ACCEPTING_SPONSORS"; # string : @parameter%sponsor : @storage
                     FAILWITH;   # FAILED
                   }; # @parameter%sponsor : @storage
-                # sp.transfer(sp.record(from_ = sp.sender, to_ = sp.self_address, value = params), sp.tez(0), sp.contract(sp.TRecord(from_ = sp.TAddress, to_ = sp.TAddress, value = sp.TNat).layout(("from_ as from", ("to_ as to", "value"))), self.data.round_meta.stablecoin_address, entry_point='transfer').open_some()) # @parameter%sponsor : @storage
+                # sp.transfer(sp.record(from_ = sp.sender, to_ = sp.self_address, value = params), sp.tez(0), sp.contract(sp.TRecord(from_ = sp.TAddress, to_ = sp.TAddress, value = sp.TNat).layout(("from_ as from", ("to_ as to", "value"))), self.data.round_meta.stablecoin_address, entry_point='transfer').open_some(message = 'INVALID_STABLECOIN')) # @parameter%sponsor : @storage
                 NIL operation; # list operation : @parameter%sponsor : @storage
                 DUP 3;      # @storage : list operation : @parameter%sponsor : @storage
                 GET 3;      # pair (pair %round_event_timestamps (timestamp %contribution_start) (pair (timestamp %contribution_end) (pair (timestamp %cooldown_period_end) (timestamp %challenge_period_end)))) (pair %round_meta (set %token_set bytes) (pair (mutez %security_deposit_amount) (pair (address %stablecoin_address) (pair (address %donation_handler_address) (address %community_fund_address))))) : list operation : @parameter%sponsor : @storage
@@ -700,7 +700,7 @@ code
                 CONTRACT %transfer (pair address (pair address nat)); # option (contract (pair address (pair address nat))) : list operation : @parameter%sponsor : @storage
                 IF_NONE
                   {
-                    PUSH int 141; # int : list operation : @parameter%sponsor : @storage
+                    PUSH string "INVALID_STABLECOIN"; # string : list operation : @parameter%sponsor : @storage
                     FAILWITH;   # FAILED
                   }
                   {}; # @some : list operation : @parameter%sponsor : @storage
@@ -1048,7 +1048,7 @@ code
                     PUSH string "ZERO_CLR_MATCH"; # string : @parameter%withdraw_match : @storage
                     FAILWITH;   # FAILED
                   }; # @parameter%withdraw_match : @storage
-                # sp.transfer(sp.record(from_ = sp.self_address, to_ = self.data.entries[self.data.entry_address_to_id[params]].address, value = self.data.entries[self.data.entry_address_to_id[params]].clr_match), sp.tez(0), sp.contract(sp.TRecord(from_ = sp.TAddress, to_ = sp.TAddress, value = sp.TNat).layout(("from_ as from", ("to_ as to", "value"))), self.data.round_meta.stablecoin_address, entry_point='transfer').open_some()) # @parameter%withdraw_match : @storage
+                # sp.transfer(sp.record(from_ = sp.self_address, to_ = self.data.entries[self.data.entry_address_to_id[params]].address, value = self.data.entries[self.data.entry_address_to_id[params]].clr_match), sp.tez(0), sp.contract(sp.TRecord(from_ = sp.TAddress, to_ = sp.TAddress, value = sp.TNat).layout(("from_ as from", ("to_ as to", "value"))), self.data.round_meta.stablecoin_address, entry_point='transfer').open_some(message = 'INVALID_STABLECOIN')) # @parameter%withdraw_match : @storage
                 NIL operation; # list operation : @parameter%withdraw_match : @storage
                 DUP 3;      # @storage : list operation : @parameter%withdraw_match : @storage
                 GET 3;      # pair (pair %round_event_timestamps (timestamp %contribution_start) (pair (timestamp %contribution_end) (pair (timestamp %cooldown_period_end) (timestamp %challenge_period_end)))) (pair %round_meta (set %token_set bytes) (pair (mutez %security_deposit_amount) (pair (address %stablecoin_address) (pair (address %donation_handler_address) (address %community_fund_address))))) : list operation : @parameter%withdraw_match : @storage
@@ -1056,7 +1056,7 @@ code
                 CONTRACT %transfer (pair address (pair address nat)); # option (contract (pair address (pair address nat))) : list operation : @parameter%withdraw_match : @storage
                 IF_NONE
                   {
-                    PUSH int 332; # int : list operation : @parameter%withdraw_match : @storage
+                    PUSH string "INVALID_STABLECOIN"; # string : list operation : @parameter%withdraw_match : @storage
                     FAILWITH;   # FAILED
                   }
                   {}; # @some : list operation : @parameter%withdraw_match : @storage

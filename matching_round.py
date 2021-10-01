@@ -144,7 +144,7 @@ class MatchingRound(sp.Contract):
             ),
             self.data.round_meta.stablecoin_address,
             "transfer",
-        ).open_some()
+        ).open_some(Errors.INVALID_STABLECOIN)
         sp.transfer(sp.record(from_=sp.sender, to_=sp.self_address, value=value), sp.mutez(0), c)
 
         # Required storage updates
@@ -335,7 +335,7 @@ class MatchingRound(sp.Contract):
             ),
             self.data.round_meta.stablecoin_address,
             "transfer",
-        ).open_some()
+        ).open_some(Errors.INVALID_STABLECOIN)
 
         sp.transfer(
             sp.record(
