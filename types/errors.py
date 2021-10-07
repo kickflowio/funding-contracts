@@ -15,8 +15,14 @@ NOT_ALLOWED = "NOT_ALLOWED"
 # Round is not active right now
 NO_ROUND_IS_ACTIVE = "NO_ROUND_IS_ACTIVE"
 
+# Given round contract is not valid
+INVALID_ROUND_CONTRACT = "INVALID_ROUND_CONTRACT"
+
 # The token identifier bytes do not resolve to a valid address
 INVALID_IDENTIFIER_BYTES = "INVALID_IDENTIFIER_BYTES"
+
+# TOken resolved from the identifier bytes is invalid
+INVALID_TOKEN_CONTRACT = "INVALID_TOKEN_CONTRACT"
 
 # The whitelist contract address is invalid
 INVALID_WHITELIST = "INVALID_WHITELIST"

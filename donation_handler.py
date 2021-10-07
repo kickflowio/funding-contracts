@@ -39,9 +39,6 @@ class DonationHandler(sp.Contract):
             ),
         )
 
-        # Verify that a matching-round is active
-        sp.verify(self.data.round_address.is_some(), Errors.NO_ROUND_IS_ACTIVE)
-
         # Verify that the sender is whitelisted
         c = sp.contract(sp.TAddress, self.data.whitelist_address, "verify_whitelisted").open_some(
             Errors.INVALID_WHITELIST
@@ -67,9 +64,9 @@ class DonationHandler(sp.Contract):
                     ),
                 ),
             ),
-            self.data.round_address.open_some(),
+            self.data.round_address.open_some(Errors.NO_ROUND_IS_ACTIVE),
             "contribute",
-        ).open_some()
+        ).open_some(Errors.INVALID_ROUND_CONTRACT)
 
         # If token_identifier is of tez, then transfer tez to the entry
         sp.if params.token_identifier == TEZ_IDENTIFIER:
@@ -119,7 +116,7 @@ class DonationHandler(sp.Contract):
                 ),
                 token_address,
                 "transfer",
-            ).open_some()
+            ).open_some(Errors.INVALID_TOKEN_CONTRACT)
 
             sp.transfer(
                 sp.record(
@@ -221,10 +218,13 @@ if __name__ == "__main__":
     def test():
         scenario = sp.test_scenario()
 
+        whitelist = DummyWhitelist.DummyWhitelist(True)
+
         # round_address is sp.none by default
-        donation_handler = DonationHandler()
+        donation_handler = DonationHandler(whitelist_address=whitelist.address)
 
         scenario += donation_handler
+        scenario += whitelist
 
         scenario += donation_handler.donate(
             token_identifier=TEZ_IDENTIFIER,
